@@ -171,4 +171,33 @@ async signup(@Body() dto: SignupDto) {
       }
     }
   }
+   @Post('refresh')
+  @ApiOperation({ summary: 'Refresh JWT tokens using refresh token' })
+  @ApiBody({
+    description: 'Refresh token payload',
+    schema: {
+      type: 'object',
+      properties: {
+        userId: { type: 'string', example: 'uuid-of-user' },
+        refreshToken: { type: 'string', example: 'refresh-token-here' },
+      },
+      required: ['userId', 'refreshToken'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Tokens refreshed successfully',
+    schema: {
+      example: {
+        message: 'Tokens refreshed successfully',
+        user: { id: 'uuid', email: 'test@example.com', name: 'John Doe' },
+        accessToken: 'new-jwt-access-token',
+        refreshToken: 'new-jwt-refresh-token',
+      },
+    },
+  })
+  async refresh(@Body() body: { userId: string; refreshToken: string }) {
+    const { userId, refreshToken } = body;
+    return this.authService.refreshTokens(userId, refreshToken);
+  }
 }

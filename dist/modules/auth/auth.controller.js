@@ -84,6 +84,10 @@ let AuthController = AuthController_1 = class AuthController {
             }
         }
     }
+    async refresh(body) {
+        const { userId, refreshToken } = body;
+        return this.authService.refreshTokens(userId, refreshToken);
+    }
 };
 exports.AuthController = AuthController;
 __decorate([
@@ -191,6 +195,37 @@ __decorate([
     __metadata("design:paramtypes", [login_dto_1.LoginDto]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
+__decorate([
+    (0, common_1.Post)('refresh'),
+    (0, swagger_1.ApiOperation)({ summary: 'Refresh JWT tokens using refresh token' }),
+    (0, swagger_1.ApiBody)({
+        description: 'Refresh token payload',
+        schema: {
+            type: 'object',
+            properties: {
+                userId: { type: 'string', example: 'uuid-of-user' },
+                refreshToken: { type: 'string', example: 'refresh-token-here' },
+            },
+            required: ['userId', 'refreshToken'],
+        },
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Tokens refreshed successfully',
+        schema: {
+            example: {
+                message: 'Tokens refreshed successfully',
+                user: { id: 'uuid', email: 'test@example.com', name: 'John Doe' },
+                accessToken: 'new-jwt-access-token',
+                refreshToken: 'new-jwt-refresh-token',
+            },
+        },
+    }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "refresh", null);
 exports.AuthController = AuthController = AuthController_1 = __decorate([
     (0, swagger_1.ApiTags)('Auth'),
     (0, common_1.Controller)('auth'),

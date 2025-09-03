@@ -141,6 +141,23 @@ let AuthService = class AuthService {
     async findUserByEmail(email) {
         return this.usersService.findByEmail(email);
     }
+    async refreshTokens(userId, refreshToken) {
+        const user = await this.usersService.findById(userId);
+        if (!user || !user.refreshTokenHash) {
+            throw new common_1.UnauthorizedException('Access denied');
+        }
+        const tokenMatches = await bcrypt.compare(refreshToken, user.refreshTokenHash);
+        if (!tokenMatches) {
+            throw new common_1.UnauthorizedException('Invalid refresh token');
+        }
+        const tokens = await this.signTokens(user);
+        await this.setRefreshToken(user.id, tokens.refreshToken);
+        return {
+            message: 'Tokens refreshed successfully',
+            user: { id: user.id, email: user.email, name: user.name },
+            ...tokens,
+        };
+    }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
