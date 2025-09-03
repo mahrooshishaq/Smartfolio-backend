@@ -16,4 +16,7 @@ export class User {
 
   @Column({ default: false })
   isVerified!: boolean;
+
+ @Column({ type: 'text', nullable: true })
+  refreshTokenHash: string | null;
 }

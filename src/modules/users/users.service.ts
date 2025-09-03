@@ -21,5 +21,8 @@ async findByEmail(email: string): Promise<User | null> {
 async findById(id: string): Promise<User | null> {
   return this.userRepository.findOne({ where: { id } });
 }
+async updateRefreshToken(userId: string, refreshTokenHash: string | null): Promise<void> {
+    await this.userRepository.update({ id: userId }, { refreshTokenHash });
+  }
 
 }

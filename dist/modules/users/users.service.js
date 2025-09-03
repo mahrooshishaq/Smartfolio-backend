@@ -31,6 +31,9 @@ let UsersService = class UsersService {
     async findById(id) {
         return this.userRepository.findOne({ where: { id } });
     }
+    async updateRefreshToken(userId, refreshTokenHash) {
+        await this.userRepository.update({ id: userId }, { refreshTokenHash });
+    }
 };
 exports.UsersService = UsersService;
 exports.UsersService = UsersService = __decorate([

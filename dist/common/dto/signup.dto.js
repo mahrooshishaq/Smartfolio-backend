@@ -9,35 +9,22 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.User = void 0;
-const typeorm_1 = require("typeorm");
-let User = class User {
-};
-exports.User = User;
+exports.SignupDto = void 0;
+const class_validator_1 = require("class-validator");
+class SignupDto {
+}
+exports.SignupDto = SignupDto;
 __decorate([
-    (0, typeorm_1.PrimaryGeneratedColumn)('uuid'),
+    (0, class_validator_1.IsNotEmpty)({ message: 'Name is a required field.' }),
     __metadata("design:type", String)
-], User.prototype, "id", void 0);
+], SignupDto.prototype, "name", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ unique: true }),
+    (0, class_validator_1.IsNotEmpty)({ message: 'Email is a required field.' }),
+    (0, class_validator_1.IsEmail)(),
     __metadata("design:type", String)
-], User.prototype, "email", void 0);
+], SignupDto.prototype, "email", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, class_validator_1.IsNotEmpty)({ message: 'Password is a required field.' }),
+    (0, class_validator_1.MinLength)(8, { message: 'Password must be at least 8 characters long and must contain uppercase and special characters' }),
     __metadata("design:type", String)
-], User.prototype, "password", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], User.prototype, "name", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ default: false }),
-    __metadata("design:type", Boolean)
-], User.prototype, "isVerified", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
-    __metadata("design:type", Object)
-], User.prototype, "refreshTokenHash", void 0);
-exports.User = User = __decorate([
-    (0, typeorm_1.Entity)()
-], User);
+], SignupDto.prototype, "password", void 0);
