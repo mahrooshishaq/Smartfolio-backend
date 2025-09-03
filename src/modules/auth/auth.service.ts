@@ -130,4 +130,16 @@ export class AuthService {
     ...tokens,
   };
 }
+async logout(userId: string) {
+  const user = await this.usersService.findById(userId);
+  if (!user) throw new UnauthorizedException('User not found');
+
+  // Clear hashed refresh token
+  user.refreshTokenHash = null;
+  await this.usersService.updateRefreshToken(userId,null);
+
+  return { message: 'Logged out successfully' };
+}
+
+
 }

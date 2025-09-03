@@ -158,6 +158,15 @@ let AuthService = class AuthService {
             ...tokens,
         };
     }
+    async logout(userId) {
+        const user = await this.usersService.findById(userId);
+        if (!user)
+            throw new common_1.UnauthorizedException('User not found');
+        // Clear hashed refresh token
+        user.refreshTokenHash = null;
+        await this.usersService.updateRefreshToken(userId, null);
+        return { message: 'Logged out successfully' };
+    }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([

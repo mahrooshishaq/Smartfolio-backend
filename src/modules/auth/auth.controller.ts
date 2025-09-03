@@ -1,8 +1,10 @@
-import { Controller, Post, Body, BadRequestException, Logger } from '@nestjs/common';
+import { Controller, Post, Body, BadRequestException, Logger, Req, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignupDto } from '../../common/dto/signup.dto';
 import { LoginDto } from '../../common/dto/login.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { JwtAuthGuard } from './jwt-auth.guard';
+import { Request } from 'express'; // ✅ import Request
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
@@ -199,5 +201,14 @@ async signup(@Body() dto: SignupDto) {
   async refresh(@Body() body: { userId: string; refreshToken: string }) {
     const { userId, refreshToken } = body;
     return this.authService.refreshTokens(userId, refreshToken);
+  }
+   @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Logout user and revoke refresh token' })
+  async logout(@Req() req: Request) { // ✅ type req as Request
+    const userId = (req.user as any).id; // user comes from JWT guard
+    await this.authService.logout(userId);
+    return { message: 'Logged out successfully' };
   }
 }
