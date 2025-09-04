@@ -19,4 +19,13 @@ export class User {
 
  @Column({ type: 'text', nullable: true })
   refreshTokenHash: string | null;
+
+  @Column({ type: 'varchar' , nullable: true })
+  otpHash: string | null; // store hashed OTP
+
+  @Column({ type: 'timestamptz', nullable: true })
+  otpExpiry: Date | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+refreshTokenIssuedAt: Date;
 }

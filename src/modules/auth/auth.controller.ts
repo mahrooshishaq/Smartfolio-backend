@@ -4,7 +4,8 @@ import { SignupDto } from '../../common/dto/signup.dto';
 import { LoginDto } from '../../common/dto/login.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { Request } from 'express'; // ✅ import Request
+import { Request } from 'express'; 
+import { VerifyOtpDto } from '../../common/dto/verify-otp.dto';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
@@ -211,4 +212,39 @@ async signup(@Body() dto: SignupDto) {
     await this.authService.logout(userId);
     return { message: 'Logged out successfully' };
   }
+    @Post('verify-otp')
+    @ApiOperation({ summary: 'Verify OTP sent to email' })
+@ApiBody({
+  schema: {
+    type: 'object',
+    properties: {
+      email: { type: 'string', example: 'johndoe@example.com' },
+      otp: { type: 'string', example: '123456' },
+    },
+    required: ['email', 'otp'],
+  },
+})
+  async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
+    return this.authService.verifyEmailOtp(
+      verifyOtpDto.email,
+      verifyOtpDto.otp,
+    );
+  }
+  @Post('resend-otp')
+  @ApiOperation({ summary: 'Resend OTP to user email' })
+@ApiBody({
+  schema: {
+    type: 'object',
+    properties: {
+      email: { type: 'string', example: 'johndoe@example.com' },
+    },
+    required: ['email'],
+  },
+})
+@ApiOperation({ summary: 'Resend OTP to user email' })
+async resendOtp(@Body() body: { email: string }) {
+  return this.authService.resendOtp(body.email);
 }
+}
+
+

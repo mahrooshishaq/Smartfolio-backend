@@ -48,11 +48,13 @@ const jwt_1 = require("@nestjs/jwt");
 const users_service_1 = require("../users/users.service");
 const config_1 = require("@nestjs/config");
 const bcrypt = __importStar(require("bcrypt"));
+const mail_service_1 = require("../mail/mail.service");
 let AuthService = class AuthService {
-    constructor(usersService, jwtService, config) {
+    constructor(usersService, jwtService, config, mailService) {
         this.usersService = usersService;
         this.jwtService = jwtService;
         this.config = config;
+        this.mailService = mailService;
     }
     async signTokens(user) {
         const payload = { sub: user.id, email: user.email };
@@ -69,6 +71,10 @@ let AuthService = class AuthService {
     async setRefreshToken(userId, refreshToken) {
         const hash = await bcrypt.hash(refreshToken, 10);
         await this.usersService.updateRefreshToken(userId, hash);
+        const user = await this.usersService.findById(userId);
+        if (user && !user.refreshTokenIssuedAt) {
+            await this.usersService.setRefreshTokenIssuedAt(userId, new Date());
+        }
     }
     async signup(name, email, password) {
         // ------------------- 1️⃣ Basic required field checks -------------------
@@ -99,14 +105,68 @@ let AuthService = class AuthService {
         // ------------------- 5️⃣ Create user -------------------
         const hashed = await bcrypt.hash(password, 10);
         const user = await this.usersService.createUser(name, email, hashed);
-        // ------------------- 6️⃣ Sign JWT tokens -------------------
-        const tokens = await this.signTokens(user);
-        await this.setRefreshToken(user.id, tokens.refreshToken);
+        // // ------------------- 6️⃣ Sign JWT tokens -------------------
+        // const tokens = await this.signTokens(user);
+        // await this.setRefreshToken(user.id, tokens.refreshToken);
+        const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
+        await this.usersService.saveOtp(user.id, otp, 10); // expires in 10 minutes
+        await this.mailService.sendOtpEmail(user.email, otp);
         return {
             message: 'User created successfully',
             user: { id: user.id, email: user.email, name: user.name },
+        };
+    }
+    async verifyEmailOtp(email, otp) {
+        // 1. Find user
+        const user = await this.usersService.findByEmail(email);
+        if (!user) {
+            throw new common_1.BadRequestException('User not found');
+        }
+        // 2. If already verified
+        if (user.isVerified) {
+            throw new common_1.BadRequestException('User already verified');
+        }
+        // 3. Verify OTP via UsersService
+        const otpOk = await this.usersService.verifyOtp(user.id, otp);
+        if (!otpOk) {
+            throw new common_1.BadRequestException('Invalid or expired OTP');
+        }
+        // 4. Mark user as verified
+        await this.usersService.markEmailVerified(user.id);
+        // 5. Re-fetch user
+        const verifiedUser = await this.usersService.findById(user.id);
+        if (!verifiedUser) {
+            throw new common_1.BadRequestException('User not found after verification');
+        }
+        // 6. Create tokens
+        const tokens = await this.signTokens(verifiedUser);
+        await this.setRefreshToken(verifiedUser.id, tokens.refreshToken);
+        // 7. Return tokens + user info
+        return {
+            message: 'Email verified successfully',
+            user: {
+                id: verifiedUser.id,
+                email: verifiedUser.email,
+                name: verifiedUser.name,
+                isEmailVerified: verifiedUser.isVerified,
+            },
             ...tokens,
         };
+    }
+    async resendOtp(email) {
+        const user = await this.usersService.findByEmail(email);
+        if (!user)
+            throw new common_1.BadRequestException('User not found');
+        if (user.isVerified) {
+            throw new common_1.BadRequestException('User is already verified');
+        }
+        // Generate new OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        // Save OTP in DB (with expiry)
+        await this.usersService.saveOtp(user.id, otp, 10); // expires in 10 mins
+        // Send OTP email
+        await this.mailService.sendOtpEmail(user.email, otp);
+        return { message: 'OTP resent successfully' };
     }
     async login(email, password) {
         // ------------------- 1️⃣ Basic required field checks -------------------
@@ -128,9 +188,13 @@ let AuthService = class AuthService {
         if (!ok) {
             throw new common_1.UnauthorizedException('Invalid password');
         }
+        if (!user.isVerified) {
+            throw new common_1.UnauthorizedException('Email not verified. Please verify your email before logging in.');
+        }
         // ------------------- 5️⃣ Sign JWT tokens -------------------
         const tokens = await this.signTokens(user);
         await this.setRefreshToken(user.id, tokens.refreshToken);
+        await this.usersService.setRefreshTokenIssuedAt(user.id, new Date());
         return {
             message: 'Login successful',
             user: { id: user.id, email: user.email, name: user.name },
@@ -143,15 +207,20 @@ let AuthService = class AuthService {
     }
     async refreshTokens(userId, refreshToken) {
         const user = await this.usersService.findById(userId);
-        if (!user || !user.refreshTokenHash) {
+        if (!user || !user.refreshTokenHash)
             throw new common_1.UnauthorizedException('Access denied');
+        // check max session duration
+        const now = new Date();
+        const sessionLimit = 15 * 24 * 60 * 60 * 1000; // 15 days in ms
+        if (user.refreshTokenIssuedAt.getTime() + sessionLimit < now.getTime()) {
+            throw new common_1.UnauthorizedException('Session expired. Please log in again.');
         }
         const tokenMatches = await bcrypt.compare(refreshToken, user.refreshTokenHash);
-        if (!tokenMatches) {
+        if (!tokenMatches)
             throw new common_1.UnauthorizedException('Invalid refresh token');
-        }
+        // generate new access + refresh token
         const tokens = await this.signTokens(user);
-        await this.setRefreshToken(user.id, tokens.refreshToken);
+        await this.setRefreshToken(user.id, tokens.refreshToken); // rolling refresh
         return {
             message: 'Tokens refreshed successfully',
             user: { id: user.id, email: user.email, name: user.name },
@@ -173,5 +242,6 @@ exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [users_service_1.UsersService,
         jwt_1.JwtService,
-        config_1.ConfigService])
+        config_1.ConfigService,
+        mail_service_1.MailService])
 ], AuthService);

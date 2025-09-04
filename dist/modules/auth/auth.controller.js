@@ -20,6 +20,7 @@ const signup_dto_1 = require("../../common/dto/signup.dto");
 const login_dto_1 = require("../../common/dto/login.dto");
 const swagger_1 = require("@nestjs/swagger");
 const jwt_auth_guard_1 = require("./jwt-auth.guard");
+const verify_otp_dto_1 = require("../../common/dto/verify-otp.dto");
 let AuthController = AuthController_1 = class AuthController {
     constructor(authService) {
         this.authService = authService;
@@ -93,6 +94,12 @@ let AuthController = AuthController_1 = class AuthController {
         const userId = req.user.id; // user comes from JWT guard
         await this.authService.logout(userId);
         return { message: 'Logged out successfully' };
+    }
+    async verifyOtp(verifyOtpDto) {
+        return this.authService.verifyEmailOtp(verifyOtpDto.email, verifyOtpDto.otp);
+    }
+    async resendOtp(body) {
+        return this.authService.resendOtp(body.email);
     }
 };
 exports.AuthController = AuthController;
@@ -242,6 +249,42 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "logout", null);
+__decorate([
+    (0, common_1.Post)('verify-otp'),
+    (0, swagger_1.ApiOperation)({ summary: 'Verify OTP sent to email' }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            properties: {
+                email: { type: 'string', example: 'johndoe@example.com' },
+                otp: { type: 'string', example: '123456' },
+            },
+            required: ['email', 'otp'],
+        },
+    }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [verify_otp_dto_1.VerifyOtpDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "verifyOtp", null);
+__decorate([
+    (0, common_1.Post)('resend-otp'),
+    (0, swagger_1.ApiOperation)({ summary: 'Resend OTP to user email' }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            properties: {
+                email: { type: 'string', example: 'johndoe@example.com' },
+            },
+            required: ['email'],
+        },
+    }),
+    (0, swagger_1.ApiOperation)({ summary: 'Resend OTP to user email' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "resendOtp", null);
 exports.AuthController = AuthController = AuthController_1 = __decorate([
     (0, swagger_1.ApiTags)('Auth'),
     (0, common_1.Controller)('auth'),
