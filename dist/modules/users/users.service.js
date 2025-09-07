@@ -74,7 +74,10 @@ let UsersService = class UsersService {
         return this.userRepository.findOne({ where: { id } });
     }
     async updateRefreshToken(userId, refreshTokenHash) {
-        await this.userRepository.update({ id: userId }, { refreshTokenHash });
+        await this.userRepository.update({ id: userId }, {
+            refreshTokenHash,
+            refreshTokenIssuedAt: refreshTokenHash ? new Date() : null, // set null when logging out
+        });
     }
     async saveOtp(userId, otp, expiryMinutes) {
         const salt = await bcrypt.genSalt();
@@ -115,6 +118,13 @@ let UsersService = class UsersService {
     }
     async setRefreshTokenIssuedAt(userId, date) {
         await this.userRepository.update(userId, { refreshTokenIssuedAt: date });
+    }
+    async updateUser(userId, updateData) {
+        const user = await this.findById(userId);
+        if (!user)
+            throw new Error('User not found');
+        Object.assign(user, updateData); // updates only the fields you pass
+        return this.userRepository.save(user); // or .update depending on your setup
     }
 };
 exports.UsersService = UsersService;

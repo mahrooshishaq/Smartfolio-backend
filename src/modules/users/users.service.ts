@@ -38,8 +38,14 @@ async findById(id: string): Promise<User | null> {
   return this.userRepository.findOne({ where: { id } });
 }
 async updateRefreshToken(userId: string, refreshTokenHash: string | null): Promise<void> {
-    await this.userRepository.update({ id: userId }, { refreshTokenHash });
-  }
+  await this.userRepository.update(
+    { id: userId },
+    {
+      refreshTokenHash,
+      refreshTokenIssuedAt: refreshTokenHash ? new Date() : null, // set null when logging out
+    }
+  );
+}
  async saveOtp(userId: string, otp: string, expiryMinutes: number) {
     const salt = await bcrypt.genSalt();
     const otpHash = await bcrypt.hash(otp, salt);
@@ -84,6 +90,13 @@ async verifyOtp(userId: string, otp: string): Promise<boolean> {
   }
   async setRefreshTokenIssuedAt(userId: string, date: Date): Promise<void> {
   await this.userRepository.update(userId, { refreshTokenIssuedAt: date });
+}
+async updateUser(userId: string, updateData: Partial<{ email: string; name: string; googleId: string; refreshTokenHash: string; refreshTokenIssuedAt: Date }>) {
+  const user = await this.findById(userId);
+  if (!user) throw new Error('User not found');
+
+  Object.assign(user, updateData); // updates only the fields you pass
+  return this.userRepository.save(user); // or .update depending on your setup
 }
 
 }

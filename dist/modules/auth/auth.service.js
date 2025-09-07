@@ -239,30 +239,25 @@ let AuthService = class AuthService {
             await this.usersService.updateRefreshToken(userId, null);
         return { message: 'Logged out successfully' };
     }
-    async googleAuth(googleUser) {
-        // 1. Check if user exists by Google ID first
-        let user = await this.usersService.findByGoogleId(googleUser.googleId);
-        // 2. If not found, fallback to email (maybe the user signed up manually first)
-        if (!user) {
-            user = await this.usersService.findByEmail(googleUser.email);
+    async googleAuth(profile) {
+        let user = await this.usersService.findByEmail(profile.email);
+        if (user) {
+            // If user exists but Google ID is not set, link it
+            if (!user.googleId) {
+                user.googleId = profile.googleId;
+                await this.usersService.updateUser(user.id, { googleId: profile.googleId });
+            }
         }
-        // 3. If still not found → create new Google user
-        if (!user) {
-            user = await this.usersService.createUser(googleUser.name, googleUser.email, null, // no password
-            googleUser.googleId);
-            await this.usersService.markEmailVerified(user.id);
+        else {
+            // Create new user if email not in DB
+            user = await this.usersService.createUser(profile.name, profile.email, null, profile.googleId);
         }
-        // 4. Sign JWT tokens
+        // Issue JWT access + refresh tokens
         const tokens = await this.signTokens(user);
         await this.setRefreshToken(user.id, tokens.refreshToken);
         return {
-            message: 'Google login successful',
-            user: {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                isEmailVerified: true,
-            },
+            message: 'Login successful',
+            user: { id: user.id, email: user.email, name: user.name },
             ...tokens,
         };
     }
