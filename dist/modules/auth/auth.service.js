@@ -49,6 +49,7 @@ const users_service_1 = require("../users/users.service");
 const config_1 = require("@nestjs/config");
 const bcrypt = __importStar(require("bcrypt"));
 const mail_service_1 = require("../mail/mail.service");
+const crypto = __importStar(require("crypto"));
 let AuthService = class AuthService {
     constructor(usersService, jwtService, config, mailService) {
         this.usersService = usersService;
@@ -110,7 +111,7 @@ let AuthService = class AuthService {
         // await this.setRefreshToken(user.id, tokens.refreshToken);
         const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
         await this.usersService.saveOtp(user.id, otp, 10); // expires in 10 minutes
-        await this.mailService.sendOtpEmail(user.email, otp);
+        await this.mailService.sendOtpEmail(user.name, user.email, otp);
         return {
             message: 'User created successfully',
             user: { id: user.id, email: user.email, name: user.name },
@@ -165,7 +166,7 @@ let AuthService = class AuthService {
         // Save OTP in DB (with expiry)
         await this.usersService.saveOtp(user.id, otp, 10); // expires in 10 mins
         // Send OTP email
-        await this.mailService.sendOtpEmail(user.email, otp);
+        await this.mailService.sendOtpEmail(user.name, user.email, otp);
         return { message: 'OTP resent successfully' };
     }
     async login(email, password) {
@@ -260,6 +261,43 @@ let AuthService = class AuthService {
             user: { id: user.id, email: user.email, name: user.name },
             ...tokens,
         };
+    }
+    async forgotPassword(email) {
+        const user = await this.usersService.findByEmail(email);
+        if (!user)
+            throw new common_1.BadRequestException('User not found');
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const hashedToken = await bcrypt.hash(resetToken, 10);
+        user.resetTokenHash = hashedToken;
+        user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
+        await this.usersService.save(user);
+        const resetLink = `http://localhost:3000/reset-password?token=${resetToken}&email=${user.email}`;
+        await this.mailService.sendResetPasswordEmail(user.email, resetLink, user.name);
+        console.log(resetToken); // for testing
+    }
+    async resetPassword(email, token, newPassword) {
+        const user = await this.usersService.findByEmail(email);
+        if (!user)
+            throw new common_1.BadRequestException('User not found');
+        if (!user.resetTokenExpiry || user.resetTokenExpiry.getTime() < Date.now()) {
+            throw new common_1.BadRequestException('Reset token expired');
+        }
+        const resetTokenHash = user.resetTokenHash;
+        if (!resetTokenHash) {
+            throw new common_1.BadRequestException('Invalid reset token'); // token missing
+        }
+        const isTokenValid = await bcrypt.compare(token, resetTokenHash);
+        if (!isTokenValid)
+            throw new common_1.BadRequestException('Invalid reset token');
+        const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+{}[\]:;<>,.?~\\/-]).{8,}$/;
+        if (!passwordRegex.test(newPassword)) {
+            throw new common_1.BadRequestException('Password must be at least 8 characters long, contain 1 uppercase letter, and 1 special character');
+        }
+        user.password = await bcrypt.hash(newPassword, 10);
+        user.resetTokenHash = null;
+        user.resetTokenExpiry = null;
+        await this.usersService.save(user);
+        return { message: 'Password reset successfully' };
     }
 };
 exports.AuthService = AuthService;

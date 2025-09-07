@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { User } from '../users/user.entity';
 import { MailService } from '../mail/mail.service';
 import { VerifyOtpDto } from '../../common/dto/verify-otp.dto'; 
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -75,7 +76,7 @@ export class AuthService {
     // await this.setRefreshToken(user.id, tokens.refreshToken);
     const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
     await this.usersService.saveOtp(user.id, otp, 10); // expires in 10 minutes
-    await this.mailService.sendOtpEmail(user.email, otp);
+    await this.mailService.sendOtpEmail(user.name, user.email, otp);
 
     return {
       message: 'User created successfully',
@@ -140,7 +141,7 @@ async resendOtp(email: string) {
   await this.usersService.saveOtp(user.id, otp, 10); // expires in 10 mins
 
   // Send OTP email
-  await this.mailService.sendOtpEmail(user.email, otp);
+  await this.mailService.sendOtpEmail(user.name, user.email, otp);
 
   return { message: 'OTP resent successfully' };
 }
@@ -256,5 +257,50 @@ async googleAuth(profile: { email: string; name: string; googleId: string }) {
     ...tokens,
   };
 }
+async forgotPassword(email: string) {
+  const user = await this.usersService.findByEmail(email);
+  if (!user) throw new BadRequestException('User not found');
 
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  const hashedToken = await bcrypt.hash(resetToken, 10);
+
+  user.resetTokenHash = hashedToken;
+  user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
+  await this.usersService.save(user);
+
+  const resetLink = `http://localhost:3000/reset-password?token=${resetToken}&email=${user.email}`;
+  await this.mailService.sendResetPasswordEmail(user.email, resetLink, user.name);
+  console.log(resetToken); // for testing
+}
+
+async resetPassword(email: string, token: string, newPassword: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) throw new BadRequestException('User not found');
+
+    if (!user.resetTokenExpiry || user.resetTokenExpiry.getTime() < Date.now()) {
+      throw new BadRequestException('Reset token expired');
+    }
+
+   const resetTokenHash = user.resetTokenHash;
+if (!resetTokenHash) {
+  throw new BadRequestException('Invalid reset token'); // token missing
+}
+
+const isTokenValid = await bcrypt.compare(token, resetTokenHash);
+if (!isTokenValid) throw new BadRequestException('Invalid reset token');
+
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+{}[\]:;<>,.?~\\/-]).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      throw new BadRequestException(
+        'Password must be at least 8 characters long, contain 1 uppercase letter, and 1 special character',
+      );
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetTokenHash = null;
+    user.resetTokenExpiry = null;
+    await this.usersService.save(user);
+
+    return { message: 'Password reset successfully' };
+  }
 }

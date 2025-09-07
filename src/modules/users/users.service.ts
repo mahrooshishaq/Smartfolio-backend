@@ -98,6 +98,9 @@ async updateUser(userId: string, updateData: Partial<{ email: string; name: stri
   Object.assign(user, updateData); // updates only the fields you pass
   return this.userRepository.save(user); // or .update depending on your setup
 }
+  async save(user: User): Promise<User> {
+    return this.userRepository.save(user);
+  }
 
 }
 

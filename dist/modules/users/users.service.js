@@ -126,6 +126,9 @@ let UsersService = class UsersService {
         Object.assign(user, updateData); // updates only the fields you pass
         return this.userRepository.save(user); // or .update depending on your setup
     }
+    async save(user) {
+        return this.userRepository.save(user);
+    }
 };
 exports.UsersService = UsersService;
 exports.UsersService = UsersService = __decorate([

@@ -31,4 +31,10 @@ export class User {
 
   @Column({ type: 'timestamp', nullable: true })
   refreshTokenIssuedAt: Date | null;
+
+ @Column({ type: 'text', nullable: true })
+ resetTokenHash: string | null;
+
+ @Column({ type: 'timestamp', nullable: true })
+ resetTokenExpiry: Date | null;
 }

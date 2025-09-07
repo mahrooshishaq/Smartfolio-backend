@@ -121,6 +121,13 @@ let AuthController = AuthController_1 = class AuthController {
         });
         return user;
     }
+    async forgotPassword(body) {
+        await this.authService.forgotPassword(body.email);
+        return { message: 'Password reset link sent to email' };
+    }
+    async resetPassword(body) {
+        return this.authService.resetPassword(body.email, body.token, body.newPassword);
+    }
 };
 exports.AuthController = AuthController;
 __decorate([
@@ -328,6 +335,32 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "testGoogleCallback", null);
+__decorate([
+    (0, common_1.Post)('forgot-password'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "forgotPassword", null);
+__decorate([
+    (0, common_1.Post)('reset-password'),
+    (0, swagger_1.ApiOperation)({ summary: 'Reset password using token' }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            properties: {
+                email: { type: 'string', example: 'johndoe@example.com' },
+                token: { type: 'string', example: 'reset-token-from-email' },
+                newPassword: { type: 'string', example: 'NewPass@123' },
+            },
+            required: ['email', 'token', 'newPassword'],
+        },
+    }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "resetPassword", null);
 exports.AuthController = AuthController = AuthController_1 = __decorate([
     (0, swagger_1.ApiTags)('Auth'),
     (0, common_1.Controller)('auth'),

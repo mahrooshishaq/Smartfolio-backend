@@ -272,7 +272,30 @@ async testGoogleCallback(@Body() body: { email: string; name: string; googleId: 
   });
   return user;
 }
+
+@Post('forgot-password')
+async forgotPassword(@Body() body: { email: string }) {
+  await this.authService.forgotPassword(body.email);
+  return { message: 'Password reset link sent to email' };
 }
+@Post('reset-password')
+  @ApiOperation({ summary: 'Reset password using token' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', example: 'johndoe@example.com' },
+        token: { type: 'string', example: 'reset-token-from-email' },
+        newPassword: { type: 'string', example: 'NewPass@123' },
+      },
+      required: ['email', 'token', 'newPassword'],
+    },
+  })
+  async resetPassword(@Body() body: { email: string; token: string; newPassword: string }) {
+    return this.authService.resetPassword(body.email, body.token, body.newPassword);
+  }
+}
+
 
 
 
