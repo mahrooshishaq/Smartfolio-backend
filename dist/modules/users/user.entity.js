@@ -23,9 +23,14 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "email", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
+    __metadata("design:type", Object)
 ], User.prototype, "password", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true, unique: true }) // <-- Google ID field
+    ,
+    __metadata("design:type", Object)
+], User.prototype, "googleId", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
@@ -48,7 +53,7 @@ __decorate([
 ], User.prototype, "otpExpiry", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], User.prototype, "refreshTokenIssuedAt", void 0);
 exports.User = User = __decorate([
     (0, typeorm_1.Entity)()

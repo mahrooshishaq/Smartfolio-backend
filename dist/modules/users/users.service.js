@@ -55,9 +55,17 @@ let UsersService = class UsersService {
     constructor(userRepository) {
         this.userRepository = userRepository;
     }
-    async createUser(name, email, password) {
-        const user = this.userRepository.create({ name, email, password });
+    async createUser(name, email, password, googleId) {
+        const user = this.userRepository.create({
+            name,
+            email,
+            password,
+            googleId: googleId ?? null,
+        });
         return this.userRepository.save(user);
+    }
+    async findByGoogleId(googleId) {
+        return this.userRepository.findOne({ where: { googleId } });
     }
     async findByEmail(email) {
         return this.userRepository.findOne({ where: { email } });

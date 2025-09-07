@@ -1,4 +1,4 @@
-import { Controller, Post, Body, BadRequestException, Logger, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, BadRequestException, Logger, Req, UseGuards,Get } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignupDto } from '../../common/dto/signup.dto';
 import { LoginDto } from '../../common/dto/login.dto';
@@ -6,6 +6,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nes
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Request } from 'express'; 
 import { VerifyOtpDto } from '../../common/dto/verify-otp.dto';
+import { AuthGuard } from '@nestjs/passport';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
@@ -245,6 +246,33 @@ async signup(@Body() dto: SignupDto) {
 async resendOtp(@Body() body: { email: string }) {
   return this.authService.resendOtp(body.email);
 }
+//Initiate Google Login
+  @Get('google')
+@UseGuards(AuthGuard('google'))
+async googleLogin(@Req() req: Request) {
+  // This will redirect user to Google for login
 }
+
+
+  // 2. Google callback route
+@Get('google/callback')
+@UseGuards(AuthGuard('google'))
+async googleCallback(@Req() req: Request) {
+  const user = req.user;
+  if (!user) throw new BadRequestException('Google login failed');
+  return user; // user already has JWT + info from GoogleStrategy
+}
+
+@Post('google/test-callback')
+async testGoogleCallback(@Body() body: { email: string; name: string; googleId: string }) {
+  const user = await this.authService.googleAuth({
+    email: body.email,
+    name: body.name,
+    googleId: body.googleId,
+  });
+  return user;
+}
+}
+
 
 

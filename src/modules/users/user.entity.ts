@@ -8,8 +8,11 @@ export class User {
   @Column({ unique: true })
   email!: string;
 
-  @Column()
-  password!: string;
+  @Column({ type: 'varchar', nullable: true })
+  password: string | null;
+
+  @Column({ type:'varchar', nullable: true, unique: true })  // <-- Google ID field
+  googleId: string | null;
 
   @Column()
   name!: string;
@@ -27,5 +30,5 @@ export class User {
   otpExpiry: Date | null;
 
   @Column({ type: 'timestamp', nullable: true })
-refreshTokenIssuedAt: Date;
+  refreshTokenIssuedAt: Date | null;
 }

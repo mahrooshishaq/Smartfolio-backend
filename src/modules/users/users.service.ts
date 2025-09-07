@@ -11,10 +11,25 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-async createUser(name: string, email: string, password: string): Promise<User> {
-    const user = this.userRepository.create({ name, email, password });
-    return this.userRepository.save(user);
-  }
+async createUser(
+  name: string,
+  email: string,
+  password: string | null,
+  googleId?: string,
+): Promise<User> {
+  const user = this.userRepository.create({
+    name,
+    email,
+    password,
+    googleId: googleId ?? null,
+  });
+  return this.userRepository.save(user);
+}
+
+async findByGoogleId(googleId: string) {
+  return this.userRepository.findOne({ where: { googleId } });
+}
+
 async findByEmail(email: string): Promise<User | null> {
   return this.userRepository.findOne({ where: { email } });
 }

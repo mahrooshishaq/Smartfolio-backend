@@ -21,6 +21,7 @@ const login_dto_1 = require("../../common/dto/login.dto");
 const swagger_1 = require("@nestjs/swagger");
 const jwt_auth_guard_1 = require("./jwt-auth.guard");
 const verify_otp_dto_1 = require("../../common/dto/verify-otp.dto");
+const passport_1 = require("@nestjs/passport");
 let AuthController = AuthController_1 = class AuthController {
     constructor(authService) {
         this.authService = authService;
@@ -100,6 +101,25 @@ let AuthController = AuthController_1 = class AuthController {
     }
     async resendOtp(body) {
         return this.authService.resendOtp(body.email);
+    }
+    //Initiate Google Login
+    async googleLogin(req) {
+        // This will redirect user to Google for login
+    }
+    // 2. Google callback route
+    async googleCallback(req) {
+        const user = req.user;
+        if (!user)
+            throw new common_1.BadRequestException('Google login failed');
+        return user; // user already has JWT + info from GoogleStrategy
+    }
+    async testGoogleCallback(body) {
+        const user = await this.authService.googleAuth({
+            email: body.email,
+            name: body.name,
+            googleId: body.googleId,
+        });
+        return user;
     }
 };
 exports.AuthController = AuthController;
@@ -285,6 +305,29 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "resendOtp", null);
+__decorate([
+    (0, common_1.Get)('google'),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('google')),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "googleLogin", null);
+__decorate([
+    (0, common_1.Get)('google/callback'),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('google')),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "googleCallback", null);
+__decorate([
+    (0, common_1.Post)('google/test-callback'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "testGoogleCallback", null);
 exports.AuthController = AuthController = AuthController_1 = __decorate([
     (0, swagger_1.ApiTags)('Auth'),
     (0, common_1.Controller)('auth'),

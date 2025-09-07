@@ -184,6 +184,9 @@ let AuthService = class AuthService {
             throw new common_1.UnauthorizedException('Email not registered');
         }
         // ------------------- 4️⃣ Check password -------------------
+        if (!user.password) {
+            throw new common_1.UnauthorizedException('User has no password set');
+        }
         const ok = await bcrypt.compare(password, user.password);
         if (!ok) {
             throw new common_1.UnauthorizedException('Invalid password');
@@ -211,16 +214,15 @@ let AuthService = class AuthService {
             throw new common_1.UnauthorizedException('Access denied');
         // check max session duration
         const now = new Date();
-        const sessionLimit = 15 * 24 * 60 * 60 * 1000; // 15 days in ms
-        if (user.refreshTokenIssuedAt.getTime() + sessionLimit < now.getTime()) {
+        const sessionLimit = 15 * 24 * 60 * 60 * 1000; // 15 days
+        if (!user.refreshTokenIssuedAt || user.refreshTokenIssuedAt.getTime() + sessionLimit < now.getTime()) {
             throw new common_1.UnauthorizedException('Session expired. Please log in again.');
         }
         const tokenMatches = await bcrypt.compare(refreshToken, user.refreshTokenHash);
         if (!tokenMatches)
             throw new common_1.UnauthorizedException('Invalid refresh token');
-        // generate new access + refresh token
         const tokens = await this.signTokens(user);
-        await this.setRefreshToken(user.id, tokens.refreshToken); // rolling refresh
+        await this.setRefreshToken(user.id, tokens.refreshToken);
         return {
             message: 'Tokens refreshed successfully',
             user: { id: user.id, email: user.email, name: user.name },
@@ -233,8 +235,36 @@ let AuthService = class AuthService {
             throw new common_1.UnauthorizedException('User not found');
         // Clear hashed refresh token
         user.refreshTokenHash = null;
-        await this.usersService.updateRefreshToken(userId, null);
+        user.refreshTokenIssuedAt = null,
+            await this.usersService.updateRefreshToken(userId, null);
         return { message: 'Logged out successfully' };
+    }
+    async googleAuth(googleUser) {
+        // 1. Check if user exists by Google ID first
+        let user = await this.usersService.findByGoogleId(googleUser.googleId);
+        // 2. If not found, fallback to email (maybe the user signed up manually first)
+        if (!user) {
+            user = await this.usersService.findByEmail(googleUser.email);
+        }
+        // 3. If still not found → create new Google user
+        if (!user) {
+            user = await this.usersService.createUser(googleUser.name, googleUser.email, null, // no password
+            googleUser.googleId);
+            await this.usersService.markEmailVerified(user.id);
+        }
+        // 4. Sign JWT tokens
+        const tokens = await this.signTokens(user);
+        await this.setRefreshToken(user.id, tokens.refreshToken);
+        return {
+            message: 'Google login successful',
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                isEmailVerified: true,
+            },
+            ...tokens,
+        };
     }
 };
 exports.AuthService = AuthService;
