@@ -37,4 +37,9 @@ export class User {
 
  @Column({ type: 'timestamp', nullable: true })
  resetTokenExpiry: Date | null;
+
+
+@Column({ default: false })
+isLoggedin!: boolean;
+
 }

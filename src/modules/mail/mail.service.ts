@@ -18,7 +18,7 @@ export class MailService {
     });
   }
 
-  async sendOtpEmail(to: string, otp: string, name:string) {
+  async sendOtpEmail(to: string, name: string, otp:string) {
     try {
       await this.transporter.sendMail({
         from: `"Smartfolio" <${this.config.get<string>('SMTP_USER')}>`,
@@ -28,9 +28,9 @@ export class MailService {
         html: `<p>Hello ${name}, <br> Your OTP code is: <b>${otp}</b></p><p>It will expire in 10 minutes.</p>`,
       });
     } catch (err) {
-      console.error(err);
-      throw new InternalServerErrorException('Failed to send email');
-    }
+    console.error('Full email sending error:', err);  // <-- LOG FULL ERROR
+    throw new InternalServerErrorException('Failed to send email');
+  }
   }
   async sendResetPasswordEmail(to: string, resetLink: string, name:string) {
     const mailOptions = {

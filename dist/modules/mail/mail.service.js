@@ -59,7 +59,7 @@ let MailService = class MailService {
             },
         });
     }
-    async sendOtpEmail(to, otp, name) {
+    async sendOtpEmail(to, name, otp) {
         try {
             await this.transporter.sendMail({
                 from: `"Smartfolio" <${this.config.get('SMTP_USER')}>`,
@@ -70,7 +70,7 @@ let MailService = class MailService {
             });
         }
         catch (err) {
-            console.error(err);
+            console.error('Full email sending error:', err); // <-- LOG FULL ERROR
             throw new common_1.InternalServerErrorException('Failed to send email');
         }
     }

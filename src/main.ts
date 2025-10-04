@@ -12,6 +12,10 @@ async function bootstrap() {
     .setVersion('1.0')
     .addBearerAuth() // allows JWT auth in Swagger
     .build();
+app.enableCors({
+  origin: 'http://localhost:8000', // frontend URL
+  credentials: true,
+});
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);

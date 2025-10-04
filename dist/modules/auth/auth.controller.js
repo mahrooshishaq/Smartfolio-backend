@@ -30,6 +30,7 @@ let AuthController = AuthController_1 = class AuthController {
     async signup(dto) {
         try {
             const { name, email, password } = dto;
+            console.log('Signup email received:', email);
             // 1️⃣ Email format validation
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
@@ -213,7 +214,7 @@ __decorate([
         schema: {
             example: {
                 message: 'Login successful',
-                user: { id: 'uuid', email: 'test@example.com', name: 'John Doe' },
+                user: { id: 'uuid', email: 'test@example.com', name: 'John Doe', isLoggedin: true },
                 accessToken: 'jwt-access-token',
                 refreshToken: 'jwt-refresh-token',
             },
@@ -337,6 +338,16 @@ __decorate([
 ], AuthController.prototype, "testGoogleCallback", null);
 __decorate([
     (0, common_1.Post)('forgot-password'),
+    (0, swagger_1.ApiOperation)({ summary: 'Send password reset link to user email' }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            properties: {
+                email: { type: 'string', example: 'user@example.com' },
+            },
+            required: ['email'],
+        },
+    }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),

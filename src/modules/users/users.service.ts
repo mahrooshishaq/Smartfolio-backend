@@ -91,7 +91,7 @@ async verifyOtp(userId: string, otp: string): Promise<boolean> {
   async setRefreshTokenIssuedAt(userId: string, date: Date): Promise<void> {
   await this.userRepository.update(userId, { refreshTokenIssuedAt: date });
 }
-async updateUser(userId: string, updateData: Partial<{ email: string; name: string; googleId: string; refreshTokenHash: string; refreshTokenIssuedAt: Date }>) {
+async updateUser(userId: string, updateData: Partial<{ email: string; name: string; googleId: string; refreshTokenHash: string; refreshTokenIssuedAt: Date; isLoggedin:boolean; isVerified:boolean; }>) {
   const user = await this.findById(userId);
   if (!user) throw new Error('User not found');
 

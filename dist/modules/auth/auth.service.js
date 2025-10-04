@@ -111,7 +111,7 @@ let AuthService = class AuthService {
         // await this.setRefreshToken(user.id, tokens.refreshToken);
         const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
         await this.usersService.saveOtp(user.id, otp, 10); // expires in 10 minutes
-        await this.mailService.sendOtpEmail(user.name, user.email, otp);
+        await this.mailService.sendOtpEmail(user.email, user.name, otp);
         return {
             message: 'User created successfully',
             user: { id: user.id, email: user.email, name: user.name },
@@ -199,9 +199,10 @@ let AuthService = class AuthService {
         const tokens = await this.signTokens(user);
         await this.setRefreshToken(user.id, tokens.refreshToken);
         await this.usersService.setRefreshTokenIssuedAt(user.id, new Date());
+        await this.usersService.updateUser(user.id, { isLoggedin: true });
         return {
             message: 'Login successful',
-            user: { id: user.id, email: user.email, name: user.name },
+            user: { id: user.id, email: user.email, name: user.name, isLoggedin: true },
             ...tokens,
         };
     }
@@ -238,6 +239,7 @@ let AuthService = class AuthService {
         user.refreshTokenHash = null;
         user.refreshTokenIssuedAt = null,
             await this.usersService.updateRefreshToken(userId, null);
+        await this.usersService.updateUser(user.id, { isLoggedin: false });
         return { message: 'Logged out successfully' };
     }
     async googleAuth(profile) {
@@ -246,13 +248,15 @@ let AuthService = class AuthService {
             // If user exists but Google ID is not set, link it
             if (!user.googleId) {
                 user.googleId = profile.googleId;
-                await this.usersService.updateUser(user.id, { googleId: profile.googleId });
+                await this.usersService.updateUser(user.id, { googleId: profile.googleId, isLoggedin: true,
+                    isVerified: true });
             }
         }
         else {
             // Create new user if email not in DB
             user = await this.usersService.createUser(profile.name, profile.email, null, profile.googleId);
         }
+        await this.usersService.updateUser(user.id, { isVerified: true, isLoggedin: true });
         // Issue JWT access + refresh tokens
         const tokens = await this.signTokens(user);
         await this.setRefreshToken(user.id, tokens.refreshToken);

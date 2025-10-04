@@ -67,7 +67,7 @@ export class AuthController {
 async signup(@Body() dto: SignupDto) {
     try {
       const { name, email, password } = dto;
-
+console.log('Signup email received:', email);
       // 1️⃣ Email format validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
@@ -135,7 +135,7 @@ async signup(@Body() dto: SignupDto) {
     schema: {
       example: {
         message: 'Login successful',
-        user: { id: 'uuid', email: 'test@example.com', name: 'John Doe' },
+        user: { id: 'uuid', email: 'test@example.com', name: 'John Doe', isLoggedin: true },
         accessToken: 'jwt-access-token',
         refreshToken: 'jwt-refresh-token',
       },
@@ -211,6 +211,7 @@ async signup(@Body() dto: SignupDto) {
   async logout(@Req() req: Request) { // ✅ type req as Request
     const userId = (req.user as any).id; // user comes from JWT guard
     await this.authService.logout(userId);
+    
     return { message: 'Logged out successfully' };
   }
     @Post('verify-otp')
@@ -247,7 +248,7 @@ async resendOtp(@Body() body: { email: string }) {
   return this.authService.resendOtp(body.email);
 }
 //Initiate Google Login
-  @Get('google')
+@Get('google')
 @UseGuards(AuthGuard('google'))
 async googleLogin(@Req() req: Request) {
   // This will redirect user to Google for login
@@ -274,6 +275,16 @@ async testGoogleCallback(@Body() body: { email: string; name: string; googleId: 
 }
 
 @Post('forgot-password')
+  @ApiOperation({ summary: 'Send password reset link to user email' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', example: 'user@example.com' },
+      },
+      required: ['email'],
+    },
+  })
 async forgotPassword(@Body() body: { email: string }) {
   await this.authService.forgotPassword(body.email);
   return { message: 'Password reset link sent to email' };

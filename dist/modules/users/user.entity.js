@@ -63,6 +63,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
     __metadata("design:type", Object)
 ], User.prototype, "resetTokenExpiry", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], User.prototype, "isLoggedin", void 0);
 exports.User = User = __decorate([
     (0, typeorm_1.Entity)()
 ], User);
