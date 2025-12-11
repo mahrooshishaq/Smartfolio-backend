@@ -50,6 +50,7 @@ const config_1 = require("@nestjs/config");
 const bcrypt = __importStar(require("bcrypt"));
 const mail_service_1 = require("../mail/mail.service");
 const crypto = __importStar(require("crypto"));
+const common_2 = require("@nestjs/common");
 let AuthService = class AuthService {
     constructor(usersService, jwtService, config, mailService) {
         this.usersService = usersService;
@@ -109,7 +110,8 @@ let AuthService = class AuthService {
         // // ------------------- 6️⃣ Sign JWT tokens -------------------
         // const tokens = await this.signTokens(user);
         // await this.setRefreshToken(user.id, tokens.refreshToken);
-        const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
+        //const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
+        const otp = Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit OTP
         await this.usersService.saveOtp(user.id, otp, 10); // expires in 10 minutes
         await this.mailService.sendOtpEmail(user.email, user.name, otp);
         return {
@@ -155,19 +157,29 @@ let AuthService = class AuthService {
         };
     }
     async resendOtp(email) {
+        // 1. Find user
         const user = await this.usersService.findByEmail(email);
         if (!user)
             throw new common_1.BadRequestException('User not found');
         if (user.isVerified) {
             throw new common_1.BadRequestException('User is already verified');
         }
-        // Generate new OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        // Save OTP in DB (with expiry)
-        await this.usersService.saveOtp(user.id, otp, 10); // expires in 10 mins
-        // Send OTP email
-        await this.mailService.sendOtpEmail(user.name, user.email, otp);
-        return { message: 'OTP resent successfully' };
+        try {
+            // 2. Generate new OTP
+            const otp = Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit OTP
+            console.log(`Generated OTP for ${email}: ${otp}`);
+            // 3. Save OTP in DB with expiry
+            const saved = await this.usersService.saveOtp(user.id, otp, 10); // expires in 10 mins
+            console.log(`OTP saved for user ${user.id}:`, saved);
+            // 4. Send OTP email
+            await this.mailService.sendOtpEmail(user.email, user.name, otp);
+            console.log(`OTP email sent successfully to ${user.email}`);
+            return { message: 'OTP resent successfully' };
+        }
+        catch (err) {
+            console.error('Error resending OTP:', err);
+            throw new common_2.InternalServerErrorException('Failed to resend OTP');
+        }
     }
     async login(email, password) {
         // ------------------- 1️⃣ Basic required field checks -------------------

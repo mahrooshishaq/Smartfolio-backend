@@ -21,6 +21,6 @@ __decorate([
 ], VerifyOtpDto.prototype, "email", void 0);
 __decorate([
     (0, class_validator_1.IsNotEmpty)({ message: 'OTP is required.' }),
-    (0, class_validator_1.Length)(6, 6),
+    (0, class_validator_1.Length)(4, 4),
     __metadata("design:type", String)
 ], VerifyOtpDto.prototype, "otp", void 0);

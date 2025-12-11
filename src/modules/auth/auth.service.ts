@@ -7,6 +7,7 @@ import { User } from '../users/user.entity';
 import { MailService } from '../mail/mail.service';
 import { VerifyOtpDto } from '../../common/dto/verify-otp.dto'; 
 import * as crypto from 'crypto';
+import { InternalServerErrorException } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
@@ -74,7 +75,8 @@ export class AuthService {
     // // ------------------- 6️⃣ Sign JWT tokens -------------------
     // const tokens = await this.signTokens(user);
     // await this.setRefreshToken(user.id, tokens.refreshToken);
-    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
+    //const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
+    const otp = Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit OTP
     await this.usersService.saveOtp(user.id, otp, 10); // expires in 10 minutes
     await this.mailService.sendOtpEmail(user.email, user.name, otp);
 
@@ -126,7 +128,9 @@ async verifyEmailOtp(email: string, otp: string) {
     ...tokens,
   };
 }
+
 async resendOtp(email: string) {
+  // 1. Find user
   const user = await this.usersService.findByEmail(email);
   if (!user) throw new BadRequestException('User not found');
 
@@ -134,16 +138,24 @@ async resendOtp(email: string) {
     throw new BadRequestException('User is already verified');
   }
 
-  // Generate new OTP
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  try {
+    // 2. Generate new OTP
+    const otp = Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit OTP
+    console.log(`Generated OTP for ${email}: ${otp}`);
 
-  // Save OTP in DB (with expiry)
-  await this.usersService.saveOtp(user.id, otp, 10); // expires in 10 mins
+    // 3. Save OTP in DB with expiry
+    const saved = await this.usersService.saveOtp(user.id, otp, 10); // expires in 10 mins
+    console.log(`OTP saved for user ${user.id}:`, saved);
 
-  // Send OTP email
-  await this.mailService.sendOtpEmail(user.name, user.email, otp);
+    // 4. Send OTP email
+    await this.mailService.sendOtpEmail(user.email, user.name, otp);
+    console.log(`OTP email sent successfully to ${user.email}`);
 
-  return { message: 'OTP resent successfully' };
+    return { message: 'OTP resent successfully' };
+  } catch (err) {
+    console.error('Error resending OTP:', err);
+    throw new InternalServerErrorException('Failed to resend OTP');
+  }
 }
 
 
