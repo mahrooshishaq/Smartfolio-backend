@@ -20,7 +20,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_ACCESS_SECRET'), // Access token secret
         signOptions: {
-          expiresIn: config.get<string>('JWT_ACCESS_TTL') || '15m',
+          expiresIn: config.get<number>('JWT_ACCESS_TTL') || 900,
         },
       }),
     }),

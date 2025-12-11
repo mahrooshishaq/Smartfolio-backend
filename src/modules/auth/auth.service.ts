@@ -22,12 +22,12 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email };
     const accessToken = await this.jwtService.signAsync(payload, {
       secret: this.config.get<string>('JWT_ACCESS_SECRET'),
-      expiresIn: this.config.get<string>('JWT_ACCESS_TTL') || '15m',
+      expiresIn: this.config.get<number>('JWT_ACCESS_TTL') || 900,
     });
 
     const refreshToken = await this.jwtService.signAsync(payload, {
       secret: this.config.get<string>('JWT_REFRESH_SECRET'),
-      expiresIn: this.config.get<string>('JWT_REFRESH_TTL') || '7d',
+      expiresIn: this.config.get<number>('JWT_REFRESH_TTL') || 604800,
     });
 
     return { accessToken, refreshToken };

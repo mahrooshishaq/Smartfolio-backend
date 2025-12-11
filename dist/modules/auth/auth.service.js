@@ -62,11 +62,11 @@ let AuthService = class AuthService {
         const payload = { sub: user.id, email: user.email };
         const accessToken = await this.jwtService.signAsync(payload, {
             secret: this.config.get('JWT_ACCESS_SECRET'),
-            expiresIn: this.config.get('JWT_ACCESS_TTL') || '15m',
+            expiresIn: this.config.get('JWT_ACCESS_TTL') || 900,
         });
         const refreshToken = await this.jwtService.signAsync(payload, {
             secret: this.config.get('JWT_REFRESH_SECRET'),
-            expiresIn: this.config.get('JWT_REFRESH_TTL') || '7d',
+            expiresIn: this.config.get('JWT_REFRESH_TTL') || 604800,
         });
         return { accessToken, refreshToken };
     }

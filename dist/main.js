@@ -14,18 +14,10 @@ async function bootstrap() {
         .setVersion('1.0')
         .addBearerAuth() // allows JWT auth in Swagger
         .build();
-    //Deployment:
-    const port = process.env.PORT || 3000;
-    const frontendOrigin = process.env.NODE_ENV === 'production'
-        ? 'https://your-frontend.vercel.app' // update after frontend deployment
-        : 'http://localhost:8000';
-    app.enableCors({ origin: frontendOrigin, credentials: true });
-    await app.listen(port);
-    console.log(`Server running on port ${port}`);
-    // app.enableCors({
-    //   origin: 'http://localhost:8000', // frontend URL
-    //   credentials: true,
-    // });
+    app.enableCors({
+        origin: 'http://localhost:8000', // frontend URL
+        credentials: true,
+    });
     const document = swagger_1.SwaggerModule.createDocument(app, config);
     swagger_1.SwaggerModule.setup('api', app, document);
     await app.listen(3000);
