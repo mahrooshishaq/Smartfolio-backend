@@ -285,11 +285,16 @@ let AuthService = class AuthService {
         const resetToken = crypto.randomBytes(32).toString('hex');
         const hashedToken = await bcrypt.hash(resetToken, 10);
         user.resetTokenHash = hashedToken;
-        user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
+        user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiry
         await this.usersService.save(user);
-        const resetLink = `http://localhost:3000/reset-password?token=${resetToken}&email=${user.email}`;
+        const resetLink = `http://localhost:8000/reset-password?token=${resetToken}&email=${user.email}`;
         await this.mailService.sendResetPasswordEmail(user.email, resetLink, user.name);
         console.log(resetToken); // for testing
+        // <--- Add this so frontend receives JSON
+        return {
+            message: "Password reset link sent successfully",
+            email: user.email
+        };
     }
     async resetPassword(email, token, newPassword) {
         const user = await this.usersService.findByEmail(email);
@@ -305,9 +310,14 @@ let AuthService = class AuthService {
         const isTokenValid = await bcrypt.compare(token, resetTokenHash);
         if (!isTokenValid)
             throw new common_1.BadRequestException('Invalid reset token');
-        const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+{}[\]:;<>,.?~\\/-]).{8,}$/;
-        if (!passwordRegex.test(newPassword)) {
-            throw new common_1.BadRequestException('Password must be at least 8 characters long, contain 1 uppercase letter, and 1 special character');
+        if (newPassword.length < 8) {
+            throw new common_1.BadRequestException('Password must be at least 8 characters long');
+        }
+        if (!/[A-Z]/.test(newPassword)) {
+            throw new common_1.BadRequestException('Password must contain at least one uppercase letter');
+        }
+        if (!/[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]/.test(newPassword)) {
+            throw new common_1.BadRequestException('Password must contain at least one special character');
         }
         user.password = await bcrypt.hash(newPassword, 10);
         user.resetTokenHash = null;

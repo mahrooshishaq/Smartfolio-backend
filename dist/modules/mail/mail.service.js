@@ -83,6 +83,7 @@ let MailService = class MailService {
         <p>Hi ${name},</p>
         <p>You requested a password reset. Click the link below to reset your password:</p>
         <a href="${resetLink}">Reset Password</a>
+        <p>This link will expire in 1 hour.</p>
         <p>If you did not request this, you can ignore this email.</p>
       `,
         };
