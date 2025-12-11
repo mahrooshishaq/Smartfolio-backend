@@ -1,4 +1,4 @@
-import { Controller, Post, Body, BadRequestException, Logger, Req, UseGuards,Get } from '@nestjs/common';
+import { Controller, Post, Body, Res, BadRequestException, Logger, Req, UseGuards,Get } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignupDto } from '../../common/dto/signup.dto';
 import { LoginDto } from '../../common/dto/login.dto';
@@ -7,6 +7,8 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { Request } from 'express'; 
 import { VerifyOtpDto } from '../../common/dto/verify-otp.dto';
 import { AuthGuard } from '@nestjs/passport';
+import { Response } from 'express';
+
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
@@ -257,22 +259,15 @@ async googleLogin(@Req() req: Request) {
 
   // 2. Google callback route
 @Get('google/callback')
-@UseGuards(AuthGuard('google'))
-async googleCallback(@Req() req: Request) {
-  const user = req.user;
-  if (!user) throw new BadRequestException('Google login failed');
-  return user; // user already has JWT + info from GoogleStrategy
-}
+  @UseGuards(AuthGuard('google'))
+  async googleCallback(@Req() req: Request, @Res() res: Response) {
+    const user = req.user;
+    if (!user) throw new BadRequestException('Google login failed');
 
-@Post('google/test-callback')
-async testGoogleCallback(@Body() body: { email: string; name: string; googleId: string }) {
-  const user = await this.authService.googleAuth({
-    email: body.email,
-    name: body.name,
-    googleId: body.googleId,
-  });
-  return user;
-}
+    // Redirect to main page
+    res.redirect('http://localhost:8000/dashboard');
+    return; // make sure to return nothing or Nest will try to handle response twice
+  }
 
 @Post('forgot-password')
   @ApiOperation({ summary: 'Send password reset link to user email' })

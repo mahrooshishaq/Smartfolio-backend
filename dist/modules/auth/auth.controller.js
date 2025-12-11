@@ -108,19 +108,13 @@ let AuthController = AuthController_1 = class AuthController {
         // This will redirect user to Google for login
     }
     // 2. Google callback route
-    async googleCallback(req) {
+    async googleCallback(req, res) {
         const user = req.user;
         if (!user)
             throw new common_1.BadRequestException('Google login failed');
-        return user; // user already has JWT + info from GoogleStrategy
-    }
-    async testGoogleCallback(body) {
-        const user = await this.authService.googleAuth({
-            email: body.email,
-            name: body.name,
-            googleId: body.googleId,
-        });
-        return user;
+        // Redirect to main page
+        res.redirect('http://localhost:8000/dashboard');
+        return; // make sure to return nothing or Nest will try to handle response twice
     }
     async forgotPassword(body) {
         await this.authService.forgotPassword(body.email);
@@ -325,17 +319,11 @@ __decorate([
     (0, common_1.Get)('google/callback'),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('google')),
     __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "googleCallback", null);
-__decorate([
-    (0, common_1.Post)('google/test-callback'),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], AuthController.prototype, "testGoogleCallback", null);
 __decorate([
     (0, common_1.Post)('forgot-password'),
     (0, swagger_1.ApiOperation)({ summary: 'Send password reset link to user email' }),
