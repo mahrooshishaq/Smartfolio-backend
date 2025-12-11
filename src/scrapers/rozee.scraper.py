@@ -6,6 +6,14 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 
+def normalize_rozee_url(url):
+    """
+    Convert any rozee.gpt.ai URL to www.rozee.pk
+    """
+    if url:
+        return url.replace("rozee.gpt.ai", "www.rozee.pk")
+    return url
+
 # ---------------------------
 # SELENIUM CONFIG
 # ---------------------------
@@ -64,6 +72,8 @@ def scrape_page(city, page):
             # job link
             try:
                 link = jt.find_element(By.TAG_NAME, "a").get_attribute("href")
+                link = normalize_rozee_url(link)
+
             except:
                 link = "N/A"
 
