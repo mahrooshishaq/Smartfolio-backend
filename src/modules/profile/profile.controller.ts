@@ -1,10 +1,11 @@
 import { Controller, Get, UseGuards, Req } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthenticatedRequest } from '../../common/interfaces/authenticated-request.interface';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiExcludeController } from '@nestjs/swagger';
 
-@ApiTags('Profile')      // Groups it in Swagger
-@ApiBearerAuth()         // Shows lock icon, requires token in Swagger
+@ApiExcludeController()
+@ApiTags('Profile')
+@ApiBearerAuth()
 @Controller('profile')
 export class ProfileController {
   @Get()

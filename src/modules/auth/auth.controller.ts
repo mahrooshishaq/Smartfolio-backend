@@ -2,7 +2,7 @@ import { Controller, Post, Body, BadRequestException, Logger, Req, UseGuards,Get
 import { AuthService } from './auth.service';
 import { SignupDto } from '../../common/dto/signup.dto';
 import { LoginDto } from '../../common/dto/login.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiExcludeEndpoint, ApiOkResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Request } from 'express'; 
 import { VerifyOtpDto } from '../../common/dto/verify-otp.dto';
@@ -97,7 +97,10 @@ console.log('Signup email received:', email);
       const user = await this.authService.signup(name, email, password);
 
       this.logger.log(`User created successfully: ${email}`);
-      return { message: 'User created successfully', userId: user.user.id, tokens: user };
+      return {
+        message: 'User created successfully. Please check your email for the OTP to verify your account.',
+        userId: user.user.id,
+      };
     } catch (error: unknown) {
       if (error instanceof Error) {
         this.logger.error(`Signup failed for email ${dto.email}: ${error.message}`);
@@ -249,6 +252,7 @@ async resendOtp(@Body() body: { email: string }) {
 }
 //Initiate Google Login
 @Get('google')
+@ApiExcludeEndpoint()
 @UseGuards(AuthGuard('google'))
 async googleLogin(@Req() req: Request) {
   // This will redirect user to Google for login
@@ -257,6 +261,7 @@ async googleLogin(@Req() req: Request) {
 
   // 2. Google callback route
 @Get('google/callback')
+@ApiExcludeEndpoint()
 @UseGuards(AuthGuard('google'))
 async googleCallback(@Req() req: Request) {
   const user = req.user;
@@ -264,14 +269,32 @@ async googleCallback(@Req() req: Request) {
   return user; // user already has JWT + info from GoogleStrategy
 }
 
-@Post('google/test-callback')
-async testGoogleCallback(@Body() body: { email: string; name: string; googleId: string }) {
-  const user = await this.authService.googleAuth({
-    email: body.email,
-    name: body.name,
-    googleId: body.googleId,
-  });
-  return user;
+@Get('me')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
+@ApiOperation({
+  summary: 'Get current authenticated user',
+  description: 'Returns the logged-in user\'s basic info. Call this immediately after login/verify-otp to get user details.',
+})
+@ApiOkResponse({
+  description: 'Current user info',
+  schema: {
+    example: {
+      id: 'c80d42ce-dfa3-41be-9676-599b58b93004',
+      name: 'John Doe',
+      email: 'john@example.com',
+      isEmailVerified: true,
+    },
+  },
+})
+async getMe(@Req() req: Request) {
+  const user = req.user as any;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    isEmailVerified: user.isVerified,
+  };
 }
 
 @Post('forgot-password')

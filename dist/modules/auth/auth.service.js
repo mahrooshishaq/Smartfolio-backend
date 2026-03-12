@@ -275,7 +275,8 @@ let AuthService = class AuthService {
         user.resetTokenHash = hashedToken;
         user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
         await this.usersService.save(user);
-        const resetLink = `http://localhost:3000/reset-password?token=${resetToken}&email=${user.email}`;
+        const frontendUrl = this.config.get('FRONTEND_URL') || 'http://localhost:8000';
+        const resetLink = `${frontendUrl}/reset-password?token=${resetToken}&email=${user.email}`;
         await this.mailService.sendResetPasswordEmail(user.email, resetLink, user.name);
         console.log(resetToken); // for testing
     }

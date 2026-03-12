@@ -11,15 +11,18 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VerifyOtpDto = void 0;
 const class_validator_1 = require("class-validator");
+const swagger_1 = require("@nestjs/swagger");
 class VerifyOtpDto {
 }
 exports.VerifyOtpDto = VerifyOtpDto;
 __decorate([
+    (0, swagger_1.ApiProperty)({ example: 'john@example.com', description: 'Email address OTP was sent to' }),
     (0, class_validator_1.IsNotEmpty)({ message: 'Email is required.' }),
     (0, class_validator_1.IsEmail)({}, { message: 'Invalid email format.' }),
     __metadata("design:type", String)
 ], VerifyOtpDto.prototype, "email", void 0);
 __decorate([
+    (0, swagger_1.ApiProperty)({ example: '123456', description: '6-digit OTP code from email' }),
     (0, class_validator_1.IsNotEmpty)({ message: 'OTP is required.' }),
     (0, class_validator_1.Length)(6, 6),
     __metadata("design:type", String)

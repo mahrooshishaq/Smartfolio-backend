@@ -1,0 +1,3 @@
+# This file keeps the uploads/ directory tracked by git.
+# Actual uploaded files (PDF, DOCX) are excluded via .gitignore.
+# The NestJS service creates this directory automatically at startup.

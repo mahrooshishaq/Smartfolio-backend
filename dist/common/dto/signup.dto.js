@@ -11,19 +11,23 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SignupDto = void 0;
 const class_validator_1 = require("class-validator");
+const swagger_1 = require("@nestjs/swagger");
 class SignupDto {
 }
 exports.SignupDto = SignupDto;
 __decorate([
+    (0, swagger_1.ApiProperty)({ example: 'John Doe', description: 'Full name of the user' }),
     (0, class_validator_1.IsNotEmpty)({ message: 'Name is a required field.' }),
     __metadata("design:type", String)
 ], SignupDto.prototype, "name", void 0);
 __decorate([
+    (0, swagger_1.ApiProperty)({ example: 'john@example.com', description: 'User email address' }),
     (0, class_validator_1.IsNotEmpty)({ message: 'Email is a required field.' }),
     (0, class_validator_1.IsEmail)(),
     __metadata("design:type", String)
 ], SignupDto.prototype, "email", void 0);
 __decorate([
+    (0, swagger_1.ApiProperty)({ example: 'Password@123', description: 'Password (min 8 chars, uppercase + special char)' }),
     (0, class_validator_1.IsNotEmpty)({ message: 'Password is a required field.' }),
     (0, class_validator_1.MinLength)(8, { message: 'Password must be at least 8 characters long and must contain uppercase and special characters' }),
     __metadata("design:type", String)

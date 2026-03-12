@@ -52,7 +52,10 @@ let AuthController = AuthController_1 = class AuthController {
             // 4️⃣ Create user
             const user = await this.authService.signup(name, email, password);
             this.logger.log(`User created successfully: ${email}`);
-            return { message: 'User created successfully', userId: user.user.id, tokens: user };
+            return {
+                message: 'User created successfully. Please check your email for the OTP to verify your account.',
+                userId: user.user.id,
+            };
         }
         catch (error) {
             if (error instanceof Error) {
@@ -114,13 +117,14 @@ let AuthController = AuthController_1 = class AuthController {
             throw new common_1.BadRequestException('Google login failed');
         return user; // user already has JWT + info from GoogleStrategy
     }
-    async testGoogleCallback(body) {
-        const user = await this.authService.googleAuth({
-            email: body.email,
-            name: body.name,
-            googleId: body.googleId,
-        });
-        return user;
+    async getMe(req) {
+        const user = req.user;
+        return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            isEmailVerified: user.isVerified,
+        };
     }
     async forgotPassword(body) {
         await this.authService.forgotPassword(body.email);
@@ -315,6 +319,7 @@ __decorate([
 ], AuthController.prototype, "resendOtp", null);
 __decorate([
     (0, common_1.Get)('google'),
+    (0, swagger_1.ApiExcludeEndpoint)(),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('google')),
     __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
@@ -323,6 +328,7 @@ __decorate([
 ], AuthController.prototype, "googleLogin", null);
 __decorate([
     (0, common_1.Get)('google/callback'),
+    (0, swagger_1.ApiExcludeEndpoint)(),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('google')),
     __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
@@ -330,12 +336,29 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "googleCallback", null);
 __decorate([
-    (0, common_1.Post)('google/test-callback'),
-    __param(0, (0, common_1.Body)()),
+    (0, common_1.Get)('me'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Get current authenticated user',
+        description: 'Returns the logged-in user\'s basic info. Call this immediately after login/verify-otp to get user details.',
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: 'Current user info',
+        schema: {
+            example: {
+                id: 'c80d42ce-dfa3-41be-9676-599b58b93004',
+                name: 'John Doe',
+                email: 'john@example.com',
+                isEmailVerified: true,
+            },
+        },
+    }),
+    __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
-], AuthController.prototype, "testGoogleCallback", null);
+], AuthController.prototype, "getMe", null);
 __decorate([
     (0, common_1.Post)('forgot-password'),
     (0, swagger_1.ApiOperation)({ summary: 'Send password reset link to user email' }),

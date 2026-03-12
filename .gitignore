@@ -1,3 +1,25 @@
 node_modules
 .env
+.env.example
 app.module.ts
+
+# Build output
+dist/
+
+# User-uploaded files (private data - never commit)
+uploads/*.pdf
+uploads/*.docx
+uploads/*.doc
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+*.egg-info/
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db

@@ -4,26 +4,38 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ProfileModule } from './modules/profile/profile.module';
+import { OnboardingModule } from './modules/onboarding/onboarding.module';
+import { ResumeModule } from './modules/resume/resume.module';
+
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }), 
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'asnaprivate',
-      password: '12345678',
-      database: 'smartfolio',
-      entities: [__dirname + '/modules/**/*.entity{.ts,.js}'],
-      synchronize: true, // dev only
+    ConfigModule.forRoot({ 
+      isGlobal: true,
+      envFilePath: '.env',
+    }), 
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        host: config.get<string>('DB_HOST'),
+        port: config.get<number>('DB_PORT'),
+        username: config.get<string>('DB_USERNAME'),
+        password: config.get<string>('DB_PASSWORD'),
+        database: config.get<string>('DB_NAME'),
+        entities: [__dirname + '/modules/**/*.entity{.ts,.js}'],
+        synchronize: config.get<string>('NODE_ENV') === 'development',
+        logging: config.get<string>('NODE_ENV') === 'development',
+      }),
     }),
     UsersModule,
     AuthModule,
     ProfileModule,
+    OnboardingModule,
+    ResumeModule,
   ],
-  controllers: [AppController], // add your controller here
-  providers: [AppService],      // add your service here
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

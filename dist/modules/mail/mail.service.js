@@ -49,17 +49,32 @@ const config_1 = require("@nestjs/config");
 let MailService = class MailService {
     constructor(config) {
         this.config = config;
-        this.transporter = nodemailer.createTransport({
-            host: this.config.get('SMTP_HOST'),
-            port: this.config.get('SMTP_PORT'),
-            secure: false, // true for 465, false for 587
-            auth: {
-                user: this.config.get('SMTP_USER'),
-                pass: this.config.get('SMTP_PASS'),
-            },
-        });
+        this.mockMode = this.config.get('MAIL_MOCK_MODE') === 'true';
+        if (!this.mockMode) {
+            this.transporter = nodemailer.createTransport({
+                host: this.config.get('SMTP_HOST'),
+                port: this.config.get('SMTP_PORT'),
+                secure: false, // true for 465, false for 587
+                auth: {
+                    user: this.config.get('SMTP_USER'),
+                    pass: this.config.get('SMTP_PASS'),
+                },
+            });
+        }
+        else {
+            console.log('📧 Mail Service running in MOCK MODE - emails will be logged to console');
+        }
     }
     async sendOtpEmail(to, name, otp) {
+        if (this.mockMode) {
+            console.log('\n========== MOCK EMAIL ==========');
+            console.log(`To: ${to}`);
+            console.log(`Subject: Welcome to Smartfolio`);
+            console.log(`Body: Hello ${name}, your OTP code is: ${otp}`);
+            console.log(`OTP will expire in 10 minutes`);
+            console.log('================================\n');
+            return;
+        }
         try {
             await this.transporter.sendMail({
                 from: `"Smartfolio" <${this.config.get('SMTP_USER')}>`,
@@ -75,6 +90,15 @@ let MailService = class MailService {
         }
     }
     async sendResetPasswordEmail(to, resetLink, name) {
+        if (this.mockMode) {
+            console.log('\n========== MOCK EMAIL ==========');
+            console.log(`To: ${to}`);
+            console.log(`Subject: Password Reset Request`);
+            console.log(`Body: Hi ${name}, click this link to reset your password:`);
+            console.log(`Link: ${resetLink}`);
+            console.log('================================\n');
+            return;
+        }
         const mailOptions = {
             from: `"Smartfolio" <${process.env.SMTP_USER}>`,
             to,

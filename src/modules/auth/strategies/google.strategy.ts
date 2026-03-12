@@ -10,12 +10,19 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
      private readonly authService: AuthService,
     private readonly config: ConfigService,
   ) {
+    const clientID = config.get<string>('GOOGLE_CLIENT_ID') || 'placeholder';
+    const clientSecret = config.get<string>('GOOGLE_CLIENT_SECRET') || 'placeholder';
+    
     super({
-      clientID: process.env.GOOGLE_CLIENT_ID!,       // put your client ID in .env
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      callbackURL: 'http://localhost:3000/auth/google/callback',
+      clientID,
+      clientSecret,
+      callbackURL: `${config.get<string>('FRONTEND_URL') || 'http://localhost:3000'}/auth/google/callback`,
       scope: ['email', 'profile'],
     });
+    
+    if (clientID === 'placeholder') {
+      console.log('⚠️  Google OAuth disabled - GOOGLE_CLIENT_ID not configured');
+    }
   }
 
    async validate(

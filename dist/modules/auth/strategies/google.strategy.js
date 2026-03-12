@@ -17,14 +17,19 @@ const auth_service_1 = require("../auth.service");
 const config_1 = require("@nestjs/config");
 let GoogleStrategy = class GoogleStrategy extends (0, passport_1.PassportStrategy)(passport_google_oauth20_1.Strategy, 'google') {
     constructor(authService, config) {
+        const clientID = config.get('GOOGLE_CLIENT_ID') || 'placeholder';
+        const clientSecret = config.get('GOOGLE_CLIENT_SECRET') || 'placeholder';
         super({
-            clientID: process.env.GOOGLE_CLIENT_ID, // put your client ID in .env
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-            callbackURL: 'http://localhost:3000/auth/google/callback',
+            clientID,
+            clientSecret,
+            callbackURL: `${config.get('FRONTEND_URL') || 'http://localhost:3000'}/auth/google/callback`,
             scope: ['email', 'profile'],
         });
         this.authService = authService;
         this.config = config;
+        if (clientID === 'placeholder') {
+            console.log('⚠️  Google OAuth disabled - GOOGLE_CLIENT_ID not configured');
+        }
     }
     async validate(accessToken, refreshToken, profile, done) {
         const { name, emails, id } = profile;
