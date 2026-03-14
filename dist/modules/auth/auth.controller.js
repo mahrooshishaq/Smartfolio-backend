@@ -115,7 +115,8 @@ let AuthController = AuthController_1 = class AuthController {
         const user = req.user;
         if (!user)
             throw new common_1.BadRequestException('Google login failed');
-        return user; // user already has JWT + info from GoogleStrategy
+        res.redirect('http://localhost:8000/dashboard');
+        return;
     }
     async getMe(req) {
         const user = req.user;
@@ -327,6 +328,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "googleLogin", null);
 __decorate([
+    (0, common_1.Get)('google/callback'),
     (0, common_1.Get)('google/callback'),
     (0, swagger_1.ApiExcludeEndpoint)(),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('google')),
