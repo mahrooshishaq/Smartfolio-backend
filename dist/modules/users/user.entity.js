@@ -11,6 +11,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = void 0;
 const typeorm_1 = require("typeorm");
+const user_profile_entity_1 = require("./entities/user-profile.entity");
+const user_goal_entity_1 = require("./entities/user-goal.entity");
 let User = class User {
 };
 exports.User = User;
@@ -67,6 +69,14 @@ __decorate([
     (0, typeorm_1.Column)({ default: false }),
     __metadata("design:type", Boolean)
 ], User.prototype, "isLoggedin", void 0);
+__decorate([
+    (0, typeorm_1.OneToOne)(() => user_profile_entity_1.UserProfile, profile => profile.user, { cascade: true }),
+    __metadata("design:type", user_profile_entity_1.UserProfile)
+], User.prototype, "profile", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => user_goal_entity_1.UserGoal, goal => goal.user, { cascade: true }),
+    __metadata("design:type", Array)
+], User.prototype, "goals", void 0);
 exports.User = User = __decorate([
     (0, typeorm_1.Entity)()
 ], User);

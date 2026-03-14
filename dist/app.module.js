@@ -15,28 +15,39 @@ const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const config_1 = require("@nestjs/config");
 const profile_module_1 = require("./modules/profile/profile.module");
+const onboarding_module_1 = require("./modules/onboarding/onboarding.module");
+const resume_module_1 = require("./modules/resume/resume.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            config_1.ConfigModule.forRoot({ isGlobal: true }),
-            typeorm_1.TypeOrmModule.forRoot({
-                type: 'postgres',
-                host: 'localhost',
-                port: 5432,
-                username: 'asnaprivate',
-                password: '12345678',
-                database: 'smartfolio',
-                entities: [__dirname + '/modules/**/*.entity{.ts,.js}'],
-                synchronize: true, // dev only
+            config_1.ConfigModule.forRoot({
+                isGlobal: true,
+                envFilePath: '.env',
+            }),
+            typeorm_1.TypeOrmModule.forRootAsync({
+                inject: [config_1.ConfigService],
+                useFactory: (config) => ({
+                    type: 'postgres',
+                    host: config.get('DB_HOST'),
+                    port: config.get('DB_PORT'),
+                    username: config.get('DB_USERNAME'),
+                    password: config.get('DB_PASSWORD'),
+                    database: config.get('DB_NAME'),
+                    entities: [__dirname + '/modules/**/*.entity{.ts,.js}'],
+                    synchronize: config.get('NODE_ENV') === 'development',
+                    logging: config.get('NODE_ENV') === 'development',
+                }),
             }),
             users_module_1.UsersModule,
             auth_module_1.AuthModule,
             profile_module_1.ProfileModule,
+            onboarding_module_1.OnboardingModule,
+            resume_module_1.ResumeModule,
         ],
-        controllers: [app_controller_1.AppController], // add your controller here
-        providers: [app_service_1.AppService], // add your service here
+        controllers: [app_controller_1.AppController],
+        providers: [app_service_1.AppService],
     })
 ], AppModule);

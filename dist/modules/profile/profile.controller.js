@@ -34,9 +34,8 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ProfileController.prototype, "getProfile", null);
 exports.ProfileController = ProfileController = __decorate([
-    (0, swagger_1.ApiTags)('Profile') // Groups it in Swagger
-    ,
-    (0, swagger_1.ApiBearerAuth)() // Shows lock icon, requires token in Swagger
-    ,
+    (0, swagger_1.ApiExcludeController)(),
+    (0, swagger_1.ApiTags)('Profile'),
+    (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.Controller)('profile')
 ], ProfileController);

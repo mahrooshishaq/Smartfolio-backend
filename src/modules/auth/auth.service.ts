@@ -284,7 +284,8 @@ async forgotPassword(email: string) {
   user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiry
   await this.usersService.save(user);
 
-  const resetLink = `http://localhost:8000/reset-password?token=${resetToken}&email=${user.email}`;
+  const frontendUrl = this.config.get<string>('FRONTEND_URL') || 'http://localhost:8000';
+  const resetLink = `${frontendUrl}/reset-password?token=${resetToken}&email=${user.email}`;
   await this.mailService.sendResetPasswordEmail(user.email, resetLink, user.name);
   
   console.log(resetToken); // for testing
