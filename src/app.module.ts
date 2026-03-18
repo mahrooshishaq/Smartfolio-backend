@@ -11,6 +11,7 @@ import { ResumeModule } from './modules/resume/resume.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ScraperModule } from './modules/scraper/scraper.module';
 import { JobsModule } from './modules/jobs/jobs.module';
+import { CoursesModule } from './modules/courses/courses.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { JobsModule } from './modules/jobs/jobs.module';
     ScraperModule,
     ScheduleModule.forRoot(),
     JobsModule,
+    CoursesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

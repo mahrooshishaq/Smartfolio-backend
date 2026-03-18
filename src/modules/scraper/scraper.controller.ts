@@ -37,7 +37,8 @@ export class ScraperController {
   @Get('results/:userId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get scraped results for a user (jobs are normalized)' })
+  @ApiOperation({ summary: 'Get scraped results for a user.',   
+    description: 'Returned fields for courses: title, instructor, platform, category, level, duration, price, rating, language, description, course_url, thumbnail, scraped_at, source. Returned fields for jobs:title, company, location, salary_min, salary_max, job_type, experience_level, category, country, source, apply_url, scraped_at ' })
   getResults(@Param('userId') userId: string) {
     const raw = this.scraperService.getUserResults(userId);
     if (!raw) {

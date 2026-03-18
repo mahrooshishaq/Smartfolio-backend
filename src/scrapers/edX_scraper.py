@@ -166,7 +166,7 @@ async def scrape_queries(queries: list, max_pages: int) -> list:
                     if card_els:
                         cards_html = ""
                         for el in card_els[:6]:
-                            cards_html += await el.inner_text()
+                            cards_html += await el.inner_html()
                             cards_html += "\n---\n"
                         print(f"    Found {len(card_els)} card elements")
                     else:

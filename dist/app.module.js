@@ -20,6 +20,7 @@ const resume_module_1 = require("./modules/resume/resume.module");
 const schedule_1 = require("@nestjs/schedule");
 const scraper_module_1 = require("./modules/scraper/scraper.module");
 const jobs_module_1 = require("./modules/jobs/jobs.module");
+const courses_module_1 = require("./modules/courses/courses.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -52,6 +53,7 @@ exports.AppModule = AppModule = __decorate([
             scraper_module_1.ScraperModule,
             schedule_1.ScheduleModule.forRoot(),
             jobs_module_1.JobsModule,
+            courses_module_1.CoursesModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],
