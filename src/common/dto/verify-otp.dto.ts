@@ -7,7 +7,7 @@ export class VerifyOtpDto {
   @IsEmail({}, { message: 'Invalid email format.' })
   email!: string;
 
-  @ApiProperty({ example: '123456', description: '6-digit OTP code from email' })
+  @ApiProperty({ example: '1234', description: '4-digit OTP code from email' })
   @IsNotEmpty({ message: 'OTP is required.' })
   @Length(4,4)
   otp!: string;

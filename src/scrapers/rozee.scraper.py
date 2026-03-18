@@ -1,134 +1,318 @@
-import time
-import random
+import asyncio
+import json
+import os
+import argparse
 import pandas as pd
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
+from datetime import datetime
+from playwright.async_api import async_playwright
+from groq import Groq
+from dotenv import load_dotenv
 
-def normalize_rozee_url(url):
-    """Convert any rozee.gpt.ai URL to www.rozee.pk"""
-    if url:
-        return url.replace("rozee.gpt.ai", "www.rozee.pk")
-    return url
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 
 # ---------------------------
-# SELENIUM CONFIG
+# CONFIG
 # ---------------------------
-chrome_options = Options()
-chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-chrome_options.add_argument("--disable-infobars")
-chrome_options.add_argument("--disable-gpu")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument(
-    "user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-)
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-driver = webdriver.Chrome(
-    service=Service(ChromeDriverManager().install()),
-    options=chrome_options
-)
-
-# ---------------------------
-# ALL CITIES WITH CODES
-# ---------------------------
-# Add city codes here: city_name: fc_code
+# Default city codes for bulk mode
 city_codes = {
-    "lahore": 1185,
-   # "karachi": 1184,
-    #"islamabad": 1180,
-    # "rawalpindi": 1190,
-    # "faisalabad" : 1181,
-    # "gujranwala" : 1182,
-    # "gujrat": 2112,
-    # "hyderabad": 1183,
-    # " jhelum: : 2141,"
-    # "multan": 1187,
-    # add other cities below
+    "lahore":     1185,
+    "karachi":    1184,
+    "islamabad":  1180,
+    "rawalpindi": 1190,
+    "faisalabad": 1181,
 }
 
-base_url = "https://www.rozee.pk/job/jsearch/q/all/fc/{}/page/{}"
+MAX_PAGES_PER_QUERY = 3
+base_url = "https://www.rozee.pk/job/jsearch/q/{}/page/{}"
+base_url_city = "https://www.rozee.pk/job/jsearch/q/all/fc/{}/page/{}"
 
-all_jobs = []
-
-# ---------------------------
-# SCRAPE FUNCTION
-# ---------------------------
-def scrape_page(city, page):
-    try:
-        url = base_url.format(city, page)
-        print(f"Scraping {city} page {page}: {url}")
-
-        driver.get(url)
-        # Random delay to avoid detection
-        time.sleep(random.uniform(3, 6))
-
-        job_cards = driver.find_elements(By.CSS_SELECTOR, "div.job")
-        if not job_cards:
-            print("No jobs found.")
-            return False
-
-        for job in job_cards:
-
-            # Job title
-            try:
-                title_elem = job.find_elements(By.CSS_SELECTOR, "h3.s-18 bdi")
-                title = title_elem[0].text.strip() if title_elem else "N/A"
-            except:
-                title = "N/A"
-
-            # Job link
-            try:
-                link_elem = job.find_elements(By.CSS_SELECTOR, "h3.s-18 a")
-                link = normalize_rozee_url(link_elem[0].get_attribute("href")) if link_elem else "N/A"
-            except:
-                link = "N/A"
-
-            # Location
-            try:
-                cname_div = job.find_elements(By.CSS_SELECTOR, "div.cname")
-                if cname_div:
-                    links = cname_div[0].find_elements(By.CSS_SELECTOR, "a.display-inline")
-                    location = links[1].text.strip() if len(links) > 1 else "N/A"
-                else:
-                    location = "N/A"
-            except:
-                location = "N/A"
-
-            all_jobs.append({
-                "city": city,
-                "title": title,
-                "link": link,
-                "location": location
-            })
-
-        return True
-
-    except Exception as e:
-        print("Page error:", e)
-        return False
 
 # ---------------------------
-# RUN SCRAPER
+# AI EXTRACTION
 # ---------------------------
-for city in city_codes:  # using your city_codes dict
-    max_pages = 5  # you can adjust or make dynamic per city
-    for page in range(1, max_pages + 1):
-        ok = scrape_page(city, page)
-        if not ok:
-            break
-        # Random delay between pages to mimic human browsing
-        time.sleep(random.uniform(5, 12))
+async def ai_extract_jobs(html: str, city: str) -> list:
+    for model in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]:
+        try:
+            prompt = f"""Extract all job listings from this HTML from rozee.pk.
+Return ONLY a valid JSON array, no explanation, no markdown, no backticks.
+Each object must have these exact fields:
+- title: job title
+- company: company name
+- location: job location
+- salary: salary if mentioned, else "Not specified"
+- job_type: full time / part time / internship / contract / remote / hybrid if mentioned, else "Not specified"
+- experience: experience required if mentioned, else "Not specified"
+- apply_url: the direct link to the job (must start with https://www.rozee.pk)
+- city: "{city}"
+- scraped_at: "{datetime.now().strftime('%Y-%m-%d')}"
 
-driver.quit()
+HTML:
+{html[:4000]}"""
+
+            response = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0,
+            )
+
+            raw = response.choices[0].message.content.strip()
+            raw = raw.replace("```json", "").replace("```", "").strip()
+            jobs = json.loads(raw)
+            print(f"  AI extracted {len(jobs)} jobs (model: {model})")
+            return jobs
+
+        except json.JSONDecodeError as e:
+            print(f"  AI returned invalid JSON ({model}): {e}")
+            return []
+        except Exception as e:
+            if "413" in str(e) or "rate_limit" in str(e).lower():
+                print(f"  Rate limit on {model}, trying fallback...")
+                continue
+            print(f"  AI extraction error ({model}): {e}")
+            return []
+
+    return []
+
 
 # ---------------------------
-# SAVE CSV + EXCEL
+# NORMALIZE
 # ---------------------------
-df = pd.DataFrame(all_jobs)
-df.to_csv("rozee_jobs.csv", index=False)
-df.to_excel("rozee_jobs.xlsx", index=False)
+def normalize_jobs(jobs: list) -> list:
+    normalized = []
+    for job in jobs:
+        normalized.append({
+            "title":            job.get("title", "Not specified"),
+            "company":          job.get("company", "Not specified"),
+            "location":         job.get("location") or job.get("city", "Not specified"),
+            "salary_min":       job.get("salary", "Not specified"),
+            "salary_max":       "Not specified",
+            "job_type":         job.get("job_type", "Not specified"),
+            "experience_level": job.get("experience", "Not specified"),
+            "category":         "Not specified",
+            "country":          "Pakistan",
+            "source":           "rozee.pk",
+            "apply_url":        job.get("apply_url", "Not specified"),
+            "scraped_at":       job.get("scraped_at", datetime.now().strftime("%Y-%m-%d")),
+        })
+    return normalized
 
-print("\nDone. Jobs scraped:", len(df))
-print("Saved as rozee_jobs.csv and rozee_jobs.xlsx")
+
+# ---------------------------
+# SCRAPER — ON-DEMAND MODE (query-based)
+# ---------------------------
+async def scrape_by_queries(queries: list[str]) -> list:
+    all_jobs = []
+    seen_urls = set()
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=True,
+            args=["--disable-blink-features=AutomationControlled"]
+        )
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            viewport={"width": 1280, "height": 800},
+            locale="en-US",
+        )
+        await context.add_init_script(
+            "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+        )
+        page = await context.new_page()
+
+        for query in queries:
+            print(f"\nQuery: '{query}'")
+            for page_num in range(1, MAX_PAGES_PER_QUERY + 1):
+                url = base_url.format(query.replace(" ", "+"), page_num)
+                print(f"  Page {page_num}: {url}")
+
+                try:
+                    await page.goto(url, timeout=30000, wait_until="domcontentloaded")
+                    await page.wait_for_timeout(5000)
+
+                    html = await page.content()
+
+                    if "no jobs found" in html.lower() or "0 jobs" in html.lower():
+                        break
+
+                    job_section = await page.query_selector_all(
+                        'div.job, article, [class*="job-card"], [class*="jobCard"]'
+                    )
+
+                    if job_section:
+                        jobs_html = ""
+                        for el in job_section[:6]:
+                            jobs_html += await el.inner_text()
+                            jobs_html += "\n---\n"
+                    else:
+                        jobs_html = html[:4000]
+
+                    jobs = await ai_extract_jobs(jobs_html, query)
+                    normalized = normalize_jobs(jobs)
+
+                    new_count = 0
+                    for job in normalized:
+                        key = job.get("apply_url", "")
+                        if key and key not in seen_urls:
+                            seen_urls.add(key)
+                            all_jobs.append(job)
+                            new_count += 1
+
+                    print(f"  +{new_count} new | Total: {len(all_jobs)}")
+
+                    if new_count == 0:
+                        break
+
+                    await page.wait_for_timeout(3000)
+
+                except Exception as e:
+                    print(f"  Error: {e}")
+                    break
+
+        await browser.close()
+
+    return all_jobs
+
+
+# ---------------------------
+# SCRAPER — BULK MODE (city-based, original behavior)
+# ---------------------------
+async def scrape_bulk() -> list:
+    all_jobs = []
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=False,
+            args=["--disable-blink-features=AutomationControlled"]
+        )
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            viewport={"width": 1280, "height": 800},
+            locale="en-US",
+        )
+        await context.add_init_script(
+            "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+        )
+        page = await context.new_page()
+
+        for city, code in city_codes.items():
+            print(f"\nScraping city: {city.upper()}")
+            for page_num in range(1, 6):
+                url = base_url_city.format(code, page_num)
+                print(f"  Page {page_num}: {url}")
+
+                try:
+                    await page.goto(url, timeout=30000)
+                    await page.wait_for_timeout(8000)
+                    html = await page.content()
+
+                    if "no jobs found" in html.lower() or "0 jobs" in html.lower():
+                        break
+
+                    job_section = await page.query_selector_all(
+                        'div.job, article, [class*="job-card"], [class*="jobCard"]'
+                    )
+
+                    if job_section:
+                        jobs_html = ""
+                        for el in job_section[:6]:
+                            jobs_html += await el.inner_text()
+                            jobs_html += "\n---\n"
+                    else:
+                        jobs_html = html[:4000]
+
+                    jobs = await ai_extract_jobs(jobs_html, city)
+                    normalized = normalize_jobs(jobs)
+
+                    if not normalized:
+                        break
+
+                    all_jobs.extend(normalized)
+                    print(f"  Total so far: {len(all_jobs)}")
+                    await page.wait_for_timeout(4000)
+
+                except Exception as e:
+                    print(f"  Error on page {page_num}: {e}")
+                    break
+
+        await browser.close()
+
+    return all_jobs
+
+
+# ---------------------------
+# SAVE — JSON (on-demand) or CSV (bulk)
+# ---------------------------
+def save_to_json(jobs: list, output_file: str, mode: str = "append"):
+    """Save/append jobs to a user-specific JSON file."""
+    existing = {"jobs": [], "courses": []}
+
+    if mode == "append" and os.path.exists(output_file):
+        try:
+            with open(output_file, "r") as f:
+                existing = json.load(f)
+        except Exception:
+            pass
+
+    # Merge and deduplicate
+    existing_urls = {j.get("apply_url") for j in existing.get("jobs", [])}
+    new_jobs = [j for j in jobs if j.get("apply_url") not in existing_urls]
+    existing["jobs"].extend(new_jobs)
+
+    with open(output_file, "w") as f:
+        json.dump(existing, f, indent=2)
+
+    print(f"  Saved {len(new_jobs)} new jobs to {output_file}")
+
+
+def save_to_csv(jobs: list):
+    """Save jobs to CSV+Excel in src/data/ for bulk mode."""
+    if not jobs:
+        print("No jobs to save.")
+        return
+
+    df = pd.DataFrame(jobs)
+    df.drop_duplicates(subset=["apply_url"], inplace=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+    data_dir = os.path.join(os.path.dirname(__file__), '..', 'data')
+    csv_file = os.path.join(data_dir, f'rozee_jobs_{timestamp}.csv')
+    excel_file = os.path.join(data_dir, f'rozee_jobs_{timestamp}.xlsx')
+
+    df.to_csv(csv_file, index=False)
+    df.to_excel(excel_file, index=False)
+
+    print(f"\nDone! Total jobs saved: {len(df)}")
+    print(f"CSV:   {csv_file}")
+    print(f"Excel: {excel_file}")
+
+
+# ---------------------------
+# ENTRY POINT
+# ---------------------------
+async def main():
+    parser = argparse.ArgumentParser(description="Rozee.pk scraper")
+    parser.add_argument("--queries", type=str, help="Comma-separated search queries for on-demand mode")
+    parser.add_argument("--output",  type=str, help="Output JSON file path for on-demand mode")
+    parser.add_argument("--mode",    type=str, default="append", help="append or overwrite")
+    args = parser.parse_args()
+
+    if args.queries and args.output:
+        # ON-DEMAND MODE — targeted queries, save to user JSON
+        print(f"Rozee scraper started [ON-DEMAND] at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        queries = [q.strip() for q in args.queries.split(",") if q.strip()]
+        print(f"Queries: {queries}")
+        jobs = await scrape_by_queries(queries)
+        save_to_json(jobs, args.output, args.mode)
+    else:
+        # BULK MODE — all cities, save to CSV
+        print(f"Rozee scraper started [BULK] at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        jobs = await scrape_bulk()
+        save_to_csv(jobs)
+
+    print(f"Rozee scraper finished at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

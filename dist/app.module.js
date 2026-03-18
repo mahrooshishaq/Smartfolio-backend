@@ -17,6 +17,9 @@ const config_1 = require("@nestjs/config");
 const profile_module_1 = require("./modules/profile/profile.module");
 const onboarding_module_1 = require("./modules/onboarding/onboarding.module");
 const resume_module_1 = require("./modules/resume/resume.module");
+const schedule_1 = require("@nestjs/schedule");
+const scraper_module_1 = require("./modules/scraper/scraper.module");
+const jobs_module_1 = require("./modules/jobs/jobs.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -46,6 +49,9 @@ exports.AppModule = AppModule = __decorate([
             profile_module_1.ProfileModule,
             onboarding_module_1.OnboardingModule,
             resume_module_1.ResumeModule,
+            scraper_module_1.ScraperModule,
+            schedule_1.ScheduleModule.forRoot(),
+            jobs_module_1.JobsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

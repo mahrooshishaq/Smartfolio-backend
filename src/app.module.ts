@@ -8,6 +8,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ProfileModule } from './modules/profile/profile.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { ResumeModule } from './modules/resume/resume.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ScraperModule } from './modules/scraper/scraper.module';
+import { JobsModule } from './modules/jobs/jobs.module';
 
 @Module({
   imports: [
@@ -34,6 +37,9 @@ import { ResumeModule } from './modules/resume/resume.module';
     ProfileModule,
     OnboardingModule,
     ResumeModule,
+    ScraperModule,
+    ScheduleModule.forRoot(),
+    JobsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -9,7 +9,7 @@ import { UserProfile } from '../users/entities/user-profile.entity';
 import { UserDataSource } from '../users/entities/user-data-source.entity';
 import { UserPersonalityTrait } from '../users/entities/user-personality.entity';
 import { UserContextSnapshot } from '../users/entities/user-context-snapshot.entity';
-
+import  {ScraperModule} from '../scraper/scraper.module'; 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -19,6 +19,7 @@ import { UserContextSnapshot } from '../users/entities/user-context-snapshot.ent
       UserDataSource,
       UserPersonalityTrait,
       UserContextSnapshot,
+      ScraperModule
     ]),
   ],
   controllers: [OnboardingController],

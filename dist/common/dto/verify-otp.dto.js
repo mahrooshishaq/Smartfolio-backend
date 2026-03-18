@@ -22,7 +22,7 @@ __decorate([
     __metadata("design:type", String)
 ], VerifyOtpDto.prototype, "email", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: '123456', description: '6-digit OTP code from email' }),
+    (0, swagger_1.ApiProperty)({ example: '1234', description: '4-digit OTP code from email' }),
     (0, class_validator_1.IsNotEmpty)({ message: 'OTP is required.' }),
     (0, class_validator_1.Length)(4, 4),
     __metadata("design:type", String)
