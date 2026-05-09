@@ -23,7 +23,7 @@ export class GroqService {
       apiKey: this.configService.get<string>('GROQ_API_KEY'),
     });
     this.defaultModel =
-      this.configService.get<string>('GROQ_MODEL') ?? 'llama3-70b-8192';
+      this.configService.get<string>('GROQ_MODEL') ?? 'llama-3.3-70b-versatile';
   }
 
   async chat(

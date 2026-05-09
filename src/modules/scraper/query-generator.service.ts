@@ -82,6 +82,26 @@ Rules:
       raw = raw.replace(/```json|```/g, '').trim();
       const queries: GeneratedQueries = JSON.parse(raw);
 
+      // Enforce platform rules — AI sometimes ignores the prompt constraints
+      const isInPakistan = userProfile.location?.toLowerCase().includes('pakistan') ||
+        ['lahore', 'karachi', 'islamabad', 'rawalpindi', 'faisalabad']
+          .some((city: string) => userProfile.location?.toLowerCase().includes(city));
+      const pakOnly = isInPakistan && !userProfile.openToRemote && !userProfile.willingToRelocate;
+
+      if (pakOnly) {
+        // Strip adzuna/jsearch — only rozee allowed for Pakistan-only users
+        for (const q of queries.job_queries) {
+          q.platforms = q.platforms.filter((p: string) => p === 'rozee');
+          if (q.platforms.length === 0) q.platforms = ['rozee'];
+        }
+        this.logger.log('Enforced Pakistan-only platforms (rozee) for job queries');
+      } else if (isInPakistan) {
+        // Ensure rozee is included for Pakistan users open to remote
+        for (const q of queries.job_queries) {
+          if (!q.platforms.includes('rozee')) q.platforms.push('rozee');
+        }
+      }
+
       this.logger.log(
         `Generated ${queries.job_queries.length} job queries and ${queries.course_queries.length} course queries`,
       );

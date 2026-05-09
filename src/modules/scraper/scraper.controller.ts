@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, UseGuards, Req } from '@nestjs/common';
 import { ScraperService } from './scraper.service';
 import { JobsService } from '../jobs/jobs.service';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -23,6 +23,22 @@ export class ScraperController {
   async runScraper(@Req() req: any) {
     const userId = req.user.id;
     return this.scraperService.runForUser(userId);
+  }
+
+  // ─── POST /scraper/search — Custom query search ─────────────────────────────
+  @Post('search')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Search and scrape for a custom query',
+    description: 'Scrapes jobs/courses for a user-typed search query. Results are ADDED to existing data.',
+  })
+  async searchScraper(
+    @Req() req: any,
+    @Body() body: { query: string; type?: 'jobs' | 'courses' | 'both' },
+  ) {
+    const userId = req.user.id;
+    return this.scraperService.runCustomSearch(userId, body.query, body.type || 'both');
   }
 
   // ─── POST /scraper/run/:userId ───────────────────────────────────────────────

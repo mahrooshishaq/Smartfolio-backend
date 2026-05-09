@@ -27,7 +27,9 @@ export class ScraperService {
   private readonly logger = new Logger(ScraperService.name);
   private readonly scrapersDir = path.join(__dirname, '../../../src/scrapers');
   private readonly dataDir = path.join(__dirname, '../../../src/data');
-  private readonly venvPython = path.join(__dirname, '../../../src/scrapers/venv/bin/python3');
+  private readonly venvPython = process.platform === 'win32'
+    ? path.join(__dirname, '../../../src/scrapers/venv/Scripts/python.exe')
+    : path.join(__dirname, '../../../src/scrapers/venv/bin/python3');
 
   constructor(
     @InjectRepository(User)
@@ -122,12 +124,38 @@ export class ScraperService {
     return result;
   }
 
-  // ─── Merge all temp JSON files into final user file ──────────────────────────
+  // ─── Merge all temp JSON files into final user file (APPENDS to existing) ───
   private mergeResults(tempDir: string, outputFile: string) {
+    // Start with existing data so we never lose previous results
     const merged = { jobs: [] as any[], courses: [] as any[] };
     const seenJobUrls = new Set<string>();
     const seenCourseUrls = new Set<string>();
 
+    // Load existing user data first
+    if (fs.existsSync(outputFile)) {
+      try {
+        const existing = JSON.parse(fs.readFileSync(outputFile, 'utf-8'));
+        for (const job of existing.jobs || []) {
+          const key = job.apply_url || job.title;
+          if (key && !seenJobUrls.has(key)) {
+            seenJobUrls.add(key);
+            merged.jobs.push(job);
+          }
+        }
+        for (const course of existing.courses || []) {
+          const key = course.course_url || course.title;
+          if (key && !seenCourseUrls.has(key)) {
+            seenCourseUrls.add(key);
+            merged.courses.push(course);
+          }
+        }
+        this.logger.log(`Loaded existing data: ${merged.jobs.length} jobs, ${merged.courses.length} courses`);
+      } catch (e) {
+        this.logger.warn(`Failed to read existing file, starting fresh: ${e}`);
+      }
+    }
+
+    // Append new scraped results (deduped)
     const files = fs.readdirSync(tempDir).filter(f => f.endsWith('.json'));
     for (const file of files) {
       try {
@@ -198,9 +226,9 @@ export class ScraperService {
 
         try {
           const queriesArg = queryList.join(',');
-          const cmd = `${this.venvPython} ${scraperFile} --queries "${queriesArg}" --output "${tempFile}" --mode append`;
-          this.logger.log(`[PARALLEL] Starting ${platform} scraper`);
-          await execAsync(cmd, { timeout: 120_000 });
+          const cmd = `"${this.venvPython}" "${scraperFile}" --queries "${queriesArg}" --output "${tempFile}" --mode append`;
+          this.logger.log(`[PARALLEL] Starting ${platform} scraper: ${cmd}`);
+          await execAsync(cmd, { timeout: 300_000 });
           platforms.push(platform);
           this.logger.log(`[PARALLEL] ${platform} scraper done`);
         } catch (error) {
@@ -238,8 +266,8 @@ export class ScraperService {
 
         try {
           const queriesArg = queryList.join(',');
-          const cmd = `${this.venvPython} ${scraperFile} --queries "${queriesArg}" --output "${tempFile}" --mode append`;
-          this.logger.log(`[PARALLEL] Starting ${platform} scraper`);
+          const cmd = `"${this.venvPython}" "${scraperFile}" --queries "${queriesArg}" --output "${tempFile}" --mode append`;
+          this.logger.log(`[PARALLEL] Starting ${platform} scraper: ${cmd}`);
           await execAsync(cmd, { timeout: 180_000 });
           platforms.push(platform);
           this.logger.log(`[PARALLEL] ${platform} scraper done`);
@@ -263,6 +291,77 @@ export class ScraperService {
       youtube: path.join(this.scrapersDir, 'youtube_courses.scraper.py'),
     };
     return map[platform] || null;
+  }
+
+  // ─── Run custom search query (user-typed) — APPENDS to existing data ────────
+  async runCustomSearch(
+    userId: string,
+    query: string,
+    type: 'jobs' | 'courses' | 'both' = 'both',
+  ): Promise<ScraperRunResult> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    this.logger.log(`Custom search for user ${userId}: "${query}" (type: ${type})`);
+
+    const userDataDir = path.join(this.dataDir, 'users');
+    if (!fs.existsSync(userDataDir)) fs.mkdirSync(userDataDir, { recursive: true });
+
+    const outputFile = path.join(userDataDir, `${userId}.json`);
+    const tempDir = path.join(userDataDir, `${userId}_tmp`);
+    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+
+    const result: ScraperRunResult = {
+      userId,
+      status: 'success',
+      jobs_found: 0,
+      courses_found: 0,
+      platforms_scraped: [],
+      errors: [],
+      file_path: outputFile,
+    };
+
+    // Build queries from the user's raw search string
+    const queries: GeneratedQueries = {
+      job_queries: type !== 'courses'
+        ? [{ query, platforms: ['adzuna', 'jsearch'] }]
+        : [],
+      course_queries: type !== 'jobs'
+        ? [{ query, platforms: ['edx', 'youtube'] }]
+        : [],
+    };
+
+    const promises: Promise<{ platforms: string[]; errors: string[] }>[] = [];
+
+    if (type !== 'courses') {
+      promises.push(this.runJobScrapers(queries, userId, tempDir));
+    }
+    if (type !== 'jobs') {
+      promises.push(this.runCourseScrapers(queries, userId, tempDir));
+    }
+
+    const results = await Promise.all(promises);
+    for (const r of results) {
+      result.platforms_scraped.push(...r.platforms);
+      result.errors.push(...r.errors);
+    }
+
+    // Merge new results INTO existing user data (append, not overwrite)
+    this.mergeResults(tempDir, outputFile);
+    fs.rmSync(tempDir, { recursive: true, force: true });
+
+    const counts = this.countFromFile(outputFile);
+    result.jobs_found = counts.jobs;
+    result.courses_found = counts.courses;
+
+    if (result.errors.length > 0 && result.jobs_found === 0 && result.courses_found === 0) {
+      result.status = 'failed';
+    } else if (result.errors.length > 0) {
+      result.status = 'partial';
+    }
+
+    this.logger.log(`Custom search finished for ${userId}: ${result.jobs_found} jobs, ${result.courses_found} courses`);
+    return result;
   }
 
   // ─── Read User Results ───────────────────────────────────────────────────────

@@ -24,3 +24,4 @@ venv/
 .DS_Store
 Thumbs.db
 src/data/users/775f0971-422d-495c-b9d2-da1466f11f89.json
+".claude/" 

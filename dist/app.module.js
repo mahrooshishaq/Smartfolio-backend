@@ -21,6 +21,8 @@ const schedule_1 = require("@nestjs/schedule");
 const scraper_module_1 = require("./modules/scraper/scraper.module");
 const jobs_module_1 = require("./modules/jobs/jobs.module");
 const courses_module_1 = require("./modules/courses/courses.module");
+const mock_interview_module_1 = require("./modules/mock-interview/mock-interview.module");
+const document_generation_module_1 = require("./modules/document-generation/document-generation.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -39,7 +41,7 @@ exports.AppModule = AppModule = __decorate([
                     port: config.get('DB_PORT'),
                     username: config.get('DB_USERNAME'),
                     password: config.get('DB_PASSWORD'),
-                    database: config.get('DB_NAME'),
+                    database: config.get('DB_DATABASE'),
                     entities: [__dirname + '/modules/**/*.entity{.ts,.js}'],
                     synchronize: config.get('NODE_ENV') === 'development',
                     logging: config.get('NODE_ENV') === 'development',
@@ -54,6 +56,8 @@ exports.AppModule = AppModule = __decorate([
             schedule_1.ScheduleModule.forRoot(),
             jobs_module_1.JobsModule,
             courses_module_1.CoursesModule,
+            mock_interview_module_1.MockInterviewModule,
+            document_generation_module_1.DocumentGenerationModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/user.entity';
@@ -7,9 +7,12 @@ import { UserProfile } from '../users/entities/user-profile.entity';
 import { UserDataSource } from '../users/entities/user-data-source.entity';
 import { OnboardingDto, UpdateProfileDto, UserContextDto } from '../../common/dto/onboarding.dto';
 import { DataSourceType } from '../../common/enums/user-enums';
+import { ScraperService } from '../scraper/scraper.service';
 
 @Injectable()
 export class OnboardingService {
+  private readonly logger = new Logger(OnboardingService.name);
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -19,6 +22,7 @@ export class OnboardingService {
     private userProfileRepository: Repository<UserProfile>,
     @InjectRepository(UserDataSource)
     private userDataSourceRepository: Repository<UserDataSource>,
+    private readonly scraperService: ScraperService,
   ) {}
 
   /**
@@ -87,7 +91,14 @@ export class OnboardingService {
     dataSource.isProcessed = true;
     await this.userDataSourceRepository.save(dataSource);
 
-    // 5. Return user context
+    // 5. Trigger scraper in background (fire-and-forget)
+    this.scraperService.runForUser(userId).then((result) => {
+      this.logger.log(`Background scraper completed for user ${userId}: ${result.jobs_found} jobs, ${result.courses_found} courses`);
+    }).catch((err) => {
+      this.logger.error(`Background scraper failed for user ${userId}: ${err.message}`);
+    });
+
+    // 6. Return user context immediately (don't wait for scraper)
     return this.getUserContext(userId);
   }
 

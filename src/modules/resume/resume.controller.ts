@@ -4,13 +4,17 @@ import {
   Get,
   Body,
   Param,
+  Res,
   UseGuards,
   Req,
   UseInterceptors,
   UploadedFile,
   HttpCode,
   HttpStatus,
+  NotFoundException,
 } from '@nestjs/common';
+import { Response } from 'express';
+import * as fs from 'fs';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
@@ -129,5 +133,27 @@ export class ResumeController {
     }
     const analyses = await this.storageService.getAnalysesForResume(resumeId);
     return analyses.map((a) => this.storageService.toResponseDto(a));
+  }
+
+  @Get(':resumeId/content')
+  @ApiOperation({
+    summary: 'Get extracted resume text content',
+    description: 'Returns the extracted text from the resume PDF.',
+  })
+  async getResumeContent(
+    @Req() req: AuthenticatedRequest,
+    @Param('resumeId') resumeId: string,
+  ) {
+    const resume = await this.storageService.findResumeById(resumeId);
+    if (!resume || resume.userId !== req.user.id) {
+      throw new NotFoundException('Resume not found.');
+    }
+
+    return {
+      resumeId: resume.id,
+      fileName: resume.originalFileName,
+      extractedText: resume.extractedText,
+      metadata: resume.extractionMetadata,
+    };
   }
 }

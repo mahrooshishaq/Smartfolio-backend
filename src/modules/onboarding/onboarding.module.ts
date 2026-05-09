@@ -19,8 +19,8 @@ import  {ScraperModule} from '../scraper/scraper.module';
       UserDataSource,
       UserPersonalityTrait,
       UserContextSnapshot,
-      ScraperModule
     ]),
+    ScraperModule,
   ],
   controllers: [OnboardingController],
   providers: [OnboardingService, UserContextService],

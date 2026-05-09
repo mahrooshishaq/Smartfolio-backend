@@ -24,7 +24,7 @@ city_codes = {
     "faisalabad": 1181,
 }
 
-MAX_PAGES_PER_QUERY = 3
+MAX_PAGES_PER_QUERY = 2
 base_url = "https://www.rozee.pk/job/jsearch/q/{}/page/{}"
 base_url_city = "https://www.rozee.pk/job/jsearch/q/all/fc/{}/page/{}"
 
@@ -44,7 +44,7 @@ Each object must have these exact fields:
 - salary: salary if mentioned, else "Not specified"
 - job_type: full time / part time / internship / contract / remote / hybrid if mentioned, else "Not specified"
 - experience: experience required if mentioned, else "Not specified"
-- apply_url: the direct link to the job (must start with https://www.rozee.pk)
+- apply_url: the direct link to the job from the href attribute (must start with https://www.rozee.pk, prepend it if the href is relative like /job/...)
 - city: "{city}"
 - scraped_at: "{datetime.now().strftime('%Y-%m-%d')}"
 
@@ -82,6 +82,13 @@ HTML:
 def normalize_jobs(jobs: list) -> list:
     normalized = []
     for job in jobs:
+        # Fix relative or missing URLs
+        apply_url = job.get("apply_url", "Not specified")
+        if apply_url and apply_url.startswith("/"):
+            apply_url = "https://www.rozee.pk" + apply_url
+        elif apply_url and not apply_url.startswith("http"):
+            apply_url = "https://www.rozee.pk/" + apply_url
+
         normalized.append({
             "title":            job.get("title", "Not specified"),
             "company":          job.get("company", "Not specified"),
@@ -93,7 +100,7 @@ def normalize_jobs(jobs: list) -> list:
             "category":         "Not specified",
             "country":          "Pakistan",
             "source":           "rozee.pk",
-            "apply_url":        job.get("apply_url", "Not specified"),
+            "apply_url":        apply_url,
             "scraped_at":       job.get("scraped_at", datetime.now().strftime("%Y-%m-%d")),
         })
     return normalized
@@ -128,27 +135,71 @@ async def scrape_by_queries(queries: list[str]) -> list:
                 print(f"  Page {page_num}: {url}")
 
                 try:
-                    await page.goto(url, timeout=30000, wait_until="domcontentloaded")
-                    await page.wait_for_timeout(5000)
+                    await page.goto(url, timeout=30000, wait_until="networkidle")
+                    await page.wait_for_timeout(8000)
 
                     html = await page.content()
 
                     if "no jobs found" in html.lower() or "0 jobs" in html.lower():
                         break
 
-                    job_section = await page.query_selector_all(
-                        'div.job, article, [class*="job-card"], [class*="jobCard"]'
-                    )
+                    # Extract job data directly from the DOM (rozee loads dynamically)
+                    jobs = await page.evaluate("""() => {
+                        const results = [];
+                        const listings = document.querySelectorAll('.jlist');
+                        listings.forEach(el => {
+                            const titleEl = el.querySelector('h3, .jtitle, h4 a');
+                            const companyEl = el.querySelector('.cname, .jbody a[href*="/company/"], .subtitle');
+                            const locationEl = el.querySelector('.loc, .jloc, [class*="location"]');
+                            const linkEl = el.querySelector('a[href*="/job/"]');
+                            const salaryEl = el.querySelector('.sal, [class*="salary"]');
+                            const typeEl = el.querySelector('.jtype, [class*="type"]');
 
-                    if job_section:
-                        jobs_html = ""
-                        for el in job_section[:6]:
-                            jobs_html += await el.inner_text()
-                            jobs_html += "\n---\n"
-                    else:
-                        jobs_html = html[:4000]
+                            const title = titleEl ? titleEl.textContent.trim() : '';
+                            if (!title) return;
 
-                    jobs = await ai_extract_jobs(jobs_html, query)
+                            let href = linkEl ? (linkEl.href || linkEl.getAttribute('href') || '') : '';
+                            if (href && !href.startsWith('http')) href = 'https://www.rozee.pk' + href;
+
+                            results.push({
+                                title: title,
+                                company: companyEl ? companyEl.textContent.trim() : 'Not specified',
+                                location: locationEl ? locationEl.textContent.trim() : 'Pakistan',
+                                apply_url: href || '',
+                                salary: salaryEl ? salaryEl.textContent.trim() : 'Not specified',
+                                job_type: typeEl ? typeEl.textContent.trim() : 'Not specified',
+                            });
+                        });
+
+                        // Fallback: also check h3 elements with job links
+                        if (results.length === 0) {
+                            document.querySelectorAll('a[href*="/job/"]').forEach(a => {
+                                const text = a.textContent.trim();
+                                if (text.length > 5 && text.length < 100) {
+                                    let href = a.href || a.getAttribute('href') || '';
+                                    if (href && !href.startsWith('http')) href = 'https://www.rozee.pk' + href;
+                                    results.push({
+                                        title: text,
+                                        company: 'Not specified',
+                                        location: 'Pakistan',
+                                        apply_url: href,
+                                        salary: 'Not specified',
+                                        job_type: 'Not specified',
+                                    });
+                                }
+                            });
+                        }
+
+                        return results;
+                    }""")
+                    print(f"  Extracted {len(jobs)} jobs from DOM")
+
+                    # Add metadata
+                    for job in jobs:
+                        job["city"] = query
+                        job["scraped_at"] = datetime.now().strftime('%Y-%m-%d')
+                        job["experience"] = "Not specified"
+
                     normalized = normalize_jobs(jobs)
 
                     new_count = 0
@@ -210,6 +261,18 @@ async def scrape_bulk() -> list:
                     if "no jobs found" in html.lower() or "0 jobs" in html.lower():
                         break
 
+                    # Extract real job links directly
+                    job_links = await page.evaluate("""() => {
+                        const links = [];
+                        document.querySelectorAll('a[href*="/job/"]').forEach(a => {
+                            const href = a.href || a.getAttribute('href') || '';
+                            if (href && !links.includes(href) && href.includes('/job/')) {
+                                links.push(href.startsWith('http') ? href : 'https://www.rozee.pk' + href);
+                            }
+                        });
+                        return [...new Set(links)].slice(0, 20);
+                    }""")
+
                     job_section = await page.query_selector_all(
                         'div.job, article, [class*="job-card"], [class*="jobCard"]'
                     )
@@ -217,12 +280,18 @@ async def scrape_bulk() -> list:
                     if job_section:
                         jobs_html = ""
                         for el in job_section[:6]:
-                            jobs_html += await el.inner_text()
+                            jobs_html += await el.inner_html()
                             jobs_html += "\n---\n"
                     else:
                         jobs_html = html[:4000]
 
                     jobs = await ai_extract_jobs(jobs_html, city)
+
+                    # Override AI URLs with real links
+                    for i, job in enumerate(jobs):
+                        if i < len(job_links):
+                            job["apply_url"] = job_links[i]
+
                     normalized = normalize_jobs(jobs)
 
                     if not normalized:
