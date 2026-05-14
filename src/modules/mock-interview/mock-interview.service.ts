@@ -147,6 +147,23 @@ export class MockInterviewService {
     }));
   }
 
+  async getSessionDetail(userId: string, sessionId: string) {
+    const session = await this.sessionRepo.findOne({ where: { id: sessionId } });
+    if (!session) throw new NotFoundException('Session not found.');
+    if (session.userId !== userId) throw new ForbiddenException('Access denied.');
+
+    return {
+      id: session.id,
+      jobDescription: session.jobDescription,
+      questions: this.stripAnswerKeys(session.questions),
+      answers: session.answers || [],
+      evaluation: session.evaluation,
+      overallScore: session.overallScore,
+      createdAt: session.createdAt,
+      submittedAt: session.submittedAt,
+    };
+  }
+
   // ─── helpers ──────────────────────────────────────────────────────────
   private stripAnswerKeys(questions: InterviewQuestion[]): PublicQuestion[] {
     return questions.map((q) => ({

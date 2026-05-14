@@ -27,9 +27,10 @@ export class ScraperService {
   private readonly logger = new Logger(ScraperService.name);
   private readonly scrapersDir = path.join(__dirname, '../../../src/scrapers');
   private readonly dataDir = path.join(__dirname, '../../../src/data');
-  private readonly venvPython = process.platform === 'win32'
-    ? path.join(__dirname, '../../../src/scrapers/venv/Scripts/python.exe')
-    : path.join(__dirname, '../../../src/scrapers/venv/bin/python3');
+  private readonly venvPython = (process.env.SCRAPER_PYTHON_PATH || '').trim() ||
+    (process.platform === 'win32'
+      ? path.join(__dirname, '../../../src/scrapers/venv/Scripts/python.exe')
+      : path.join(__dirname, '../../../src/scrapers/venv/bin/python3'));
 
   constructor(
     @InjectRepository(User)

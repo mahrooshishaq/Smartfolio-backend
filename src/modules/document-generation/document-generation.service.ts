@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GroqService } from '../ai/groq.service';
@@ -78,6 +78,13 @@ export class DocumentGenerationService {
       preview: d.content.slice(0, 200),
       createdAt: d.createdAt,
     }));
+  }
+
+  async getDocumentDetail(userId: string, docId: string) {
+    const doc = await this.docRepo.findOne({ where: { id: docId } });
+    if (!doc) throw new NotFoundException('Document not found.');
+    if (doc.userId !== userId) throw new ForbiddenException('Access denied.');
+    return doc;
   }
 
   // ─── helpers ──────────────────────────────────────────────────────────

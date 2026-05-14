@@ -12,11 +12,15 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   ) {
     const clientID = config.get<string>('GOOGLE_CLIENT_ID') || 'placeholder';
     const clientSecret = config.get<string>('GOOGLE_CLIENT_SECRET') || 'placeholder';
-    
+    const backendPort = config.get<string>('PORT') || '3001';
+    const callbackURL =
+      config.get<string>('GOOGLE_CALLBACK_URL') ||
+      `http://localhost:${backendPort}/auth/google/callback`;
+
     super({
       clientID,
       clientSecret,
-      callbackURL: `${config.get<string>('FRONTEND_URL') || 'http://localhost:3000'}/auth/google/callback`,
+      callbackURL,
       scope: ['email', 'profile'],
     });
     

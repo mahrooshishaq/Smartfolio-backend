@@ -19,10 +19,13 @@ let GoogleStrategy = class GoogleStrategy extends (0, passport_1.PassportStrateg
     constructor(authService, config) {
         const clientID = config.get('GOOGLE_CLIENT_ID') || 'placeholder';
         const clientSecret = config.get('GOOGLE_CLIENT_SECRET') || 'placeholder';
+        const backendPort = config.get('PORT') || '3001';
+        const callbackURL = config.get('GOOGLE_CALLBACK_URL') ||
+            `http://localhost:${backendPort}/auth/google/callback`;
         super({
             clientID,
             clientSecret,
-            callbackURL: `${config.get('FRONTEND_URL') || 'http://localhost:3000'}/auth/google/callback`,
+            callbackURL,
             scope: ['email', 'profile'],
         });
         this.authService = authService;

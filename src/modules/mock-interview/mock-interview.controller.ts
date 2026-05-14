@@ -7,6 +7,7 @@ import {
   Req,
   HttpCode,
   HttpStatus,
+  Param,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -70,5 +71,14 @@ export class MockInterviewController {
   @ApiOperation({ summary: 'Get current user past interview sessions' })
   async listSessions(@Req() req: AuthenticatedRequest) {
     return this.service.getUserSessions(req.user.id);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get details of a specific interview session' })
+  async getSession(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.service.getSessionDetail(req.user.id, id);
   }
 }

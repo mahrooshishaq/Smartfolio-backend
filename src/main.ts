@@ -64,9 +64,9 @@ async function bootstrap() {
     .build();
 
   app.enableCors({
-   origin: 'http://localhost:3001',
-   credentials: true,
- });
+    origin: configService.get<string>('FRONTEND_URL') || 'http://localhost:3000',
+    credentials: true,
+  });
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);

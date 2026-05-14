@@ -11,14 +11,24 @@ export class MailService {
     this.mockMode = this.config.get<string>('MAIL_MOCK_MODE') === 'true';
     
     if (!this.mockMode) {
+      const smtpPort = Number(this.config.get<string>('SMTP_PORT') || 587);
+      const smtpPass = (this.config.get<string>('SMTP_PASS') || '').replace(/\s+/g, '');
       this.transporter = nodemailer.createTransport({
         host: this.config.get<string>('SMTP_HOST'),
-        port: this.config.get<number>('SMTP_PORT'),
-        secure: false, // true for 465, false for 587
+        port: smtpPort,
+        secure: smtpPort === 465,
         auth: {
           user: this.config.get<string>('SMTP_USER'),
-          pass: this.config.get<string>('SMTP_PASS'),
+          pass: smtpPass,
         },
+      });
+
+      this.transporter.verify((err: Error | null) => {
+        if (err) {
+          console.error('SMTP connection failed:', err);
+        } else {
+          console.log('SMTP connection verified');
+        }
       });
     } else {
       console.log('📧 Mail Service running in MOCK MODE - emails will be logged to console');

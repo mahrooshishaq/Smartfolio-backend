@@ -22,9 +22,11 @@ const swagger_1 = require("@nestjs/swagger");
 const jwt_auth_guard_1 = require("./jwt-auth.guard");
 const verify_otp_dto_1 = require("../../common/dto/verify-otp.dto");
 const passport_1 = require("@nestjs/passport");
+const config_1 = require("@nestjs/config");
 let AuthController = AuthController_1 = class AuthController {
-    constructor(authService) {
+    constructor(authService, config) {
         this.authService = authService;
+        this.config = config;
         this.logger = new common_1.Logger(AuthController_1.name); // declare logger here
     }
     async signup(dto) {
@@ -115,7 +117,17 @@ let AuthController = AuthController_1 = class AuthController {
         const user = req.user;
         if (!user)
             throw new common_1.BadRequestException('Google login failed');
-        res.redirect('http://localhost:8000/dashboard');
+        const frontendUrl = this.config.get('FRONTEND_URL') || 'http://localhost:3000';
+        const accessToken = user.accessToken;
+        const refreshToken = user.refreshToken;
+        const name = user.user?.name || '';
+        const email = user.user?.email || '';
+        const redirectUrl = `${frontendUrl}/auth/google/callback` +
+            `?accessToken=${encodeURIComponent(accessToken)}` +
+            `&refreshToken=${encodeURIComponent(refreshToken)}` +
+            `&name=${encodeURIComponent(name)}` +
+            `&email=${encodeURIComponent(email)}`;
+        res.redirect(redirectUrl);
         return;
     }
     async getMe(req) {
@@ -329,7 +341,6 @@ __decorate([
 ], AuthController.prototype, "googleLogin", null);
 __decorate([
     (0, common_1.Get)('google/callback'),
-    (0, common_1.Get)('google/callback'),
     (0, swagger_1.ApiExcludeEndpoint)(),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('google')),
     __param(0, (0, common_1.Req)()),
@@ -401,5 +412,6 @@ __decorate([
 exports.AuthController = AuthController = AuthController_1 = __decorate([
     (0, swagger_1.ApiTags)('Auth'),
     (0, common_1.Controller)('auth'),
-    __metadata("design:paramtypes", [auth_service_1.AuthService])
+    __metadata("design:paramtypes", [auth_service_1.AuthService,
+        config_1.ConfigService])
 ], AuthController);

@@ -8,12 +8,16 @@ import { Request } from 'express';
 import { VerifyOtpDto } from '../../common/dto/verify-otp.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
+import { ConfigService } from '@nestjs/config';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name); // declare logger here
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly config: ConfigService,
+  ) {}
   
 
   @Post('signup')
@@ -263,13 +267,25 @@ async googleLogin(@Req() req: Request) {
 
   // 2. Google callback route
 @Get('google/callback')
-@Get('google/callback')
 @ApiExcludeEndpoint()
 @UseGuards(AuthGuard('google'))
 async googleCallback(@Req() req: Request, @Res() res: Response) {
   const user = req.user;
   if (!user) throw new BadRequestException('Google login failed');
-  res.redirect('http://localhost:8000/dashboard');
+  const frontendUrl = this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+  const accessToken = (user as any).accessToken;
+  const refreshToken = (user as any).refreshToken;
+  const name = (user as any).user?.name || '';
+  const email = (user as any).user?.email || '';
+
+  const redirectUrl =
+    `${frontendUrl}/auth/google/callback` +
+    `?accessToken=${encodeURIComponent(accessToken)}` +
+    `&refreshToken=${encodeURIComponent(refreshToken)}` +
+    `&name=${encodeURIComponent(name)}` +
+    `&email=${encodeURIComponent(email)}`;
+
+  res.redirect(redirectUrl);
   return;
 }
 

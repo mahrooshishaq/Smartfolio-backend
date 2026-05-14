@@ -7,6 +7,7 @@ import {
   Req,
   HttpCode,
   HttpStatus,
+  Param,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -55,5 +56,14 @@ export class DocumentGenerationController {
   @ApiOperation({ summary: 'Get the current user past generated documents' })
   async history(@Req() req: AuthenticatedRequest) {
     return this.service.getHistory(req.user.id);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get details of a specific generated document' })
+  async getDocument(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.service.getDocumentDetail(req.user.id, id);
   }
 }

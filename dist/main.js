@@ -60,7 +60,7 @@ async function bootstrap() {
         .addTag('Resume', 'Resume upload and AI analysis — Lens A (targeted) and Lens B (general)')
         .build();
     app.enableCors({
-        origin: 'http://localhost:3001',
+        origin: configService.get('FRONTEND_URL') || 'http://localhost:3000',
         credentials: true,
     });
     const document = swagger_1.SwaggerModule.createDocument(app, config);
