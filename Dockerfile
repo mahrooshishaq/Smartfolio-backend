@@ -32,5 +32,5 @@ COPY . .
 RUN npm run build
 
 # Expose port and start in production mode
-EXPOSE 3001
+EXPOSE 7860
 CMD ["npm", "run", "start:prod"]
