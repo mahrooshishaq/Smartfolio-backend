@@ -1,4 +1,15 @@
+---
+title: smartfolio-backend
+emoji: 🚀
+colorFrom: purple
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # SmartFolio — AI Career Agent Backend
+
 
 > **NestJS + TypeORM + PostgreSQL + Groq (LLaMA 3.3)**  
 > REST API powering the SmartFolio AI career platform.
