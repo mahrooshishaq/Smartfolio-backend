@@ -33,7 +33,7 @@ import { DocumentGenerationModule } from './modules/document-generation/document
           password: config.get<string>('DB_PASSWORD'),
           database: config.get<string>('DB_NAME') || config.get<string>('DB_DATABASE'),
           entities: [__dirname + '/modules/**/*.entity{.ts,.js}'],
-          synchronize: config.get<string>('NODE_ENV') === 'development',
+          synchronize: true, // Enabled for automatic table creation
           logging: config.get<string>('NODE_ENV') === 'development',
           ssl: isProd ? { rejectUnauthorized: false } : false,
         };

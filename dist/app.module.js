@@ -45,7 +45,7 @@ exports.AppModule = AppModule = __decorate([
                         password: config.get('DB_PASSWORD'),
                         database: config.get('DB_NAME') || config.get('DB_DATABASE'),
                         entities: [__dirname + '/modules/**/*.entity{.ts,.js}'],
-                        synchronize: config.get('NODE_ENV') === 'development',
+                        synchronize: true, // Enabled for automatic table creation
                         logging: config.get('NODE_ENV') === 'development',
                         ssl: isProd ? { rejectUnauthorized: false } : false,
                     };
