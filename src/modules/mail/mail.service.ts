@@ -48,7 +48,7 @@ export class MailService {
 
     try {
       await this.transporter.sendMail({
-        from: `"Smartfolio" <${this.config.get<string>('SMTP_USER')}>`,
+        from: `"Smartfolio" <${this.config.get<string>('SMTP_FROM') || this.config.get<string>('SMTP_USER')}>`,
         to,
         subject: 'Welcome to Smartfolio.',
         text: `Hello ${name}, <br>Your OTP code is: ${otp}. It will expire in 10 minutes.`,
@@ -71,7 +71,7 @@ export class MailService {
     }
 
     const mailOptions = {
-      from: `"Smartfolio" <${process.env.SMTP_USER}>`,
+      from: `"Smartfolio" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
       to,
       subject: 'Password Reset Request',
       html: `
