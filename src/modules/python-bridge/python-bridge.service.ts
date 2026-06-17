@@ -2,6 +2,7 @@ import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as http from 'http';
 import * as https from 'https';
+import axios from 'axios';
 
 export interface ExtractedResume {
   text: string;
@@ -31,15 +32,26 @@ export class PythonBridgeService {
   }
 
   /**
-   * Call Python service to extract text and structure from a PDF resume
+   * Call Python service to extract text and structure from a PDF resume buffer
    */
-  async extractResume(filePath: string): Promise<ExtractedResume> {
+  async extractResume(fileBuffer: Buffer, originalFileName: string): Promise<ExtractedResume> {
     try {
-      const response = await this.post<ExtractedResume>('/extract-resume', {
-        file_path: filePath,
-      });
-      return response;
+      const formData = new FormData();
+      const blob = new Blob([new Uint8Array(fileBuffer)], { type: 'application/pdf' });
+      formData.append('file', blob, originalFileName);
+
+      const response = await axios.post<ExtractedResume>(
+        `${this.baseUrl}/extract-resume`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        },
+      );
+      return response.data;
     } catch (error) {
+      console.error('Python bridge error:', error);
       throw new ServiceUnavailableException(
         'PDF extraction service is currently unavailable. Please try again later.',
       );

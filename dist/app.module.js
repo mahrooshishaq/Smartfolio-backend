@@ -35,17 +35,21 @@ exports.AppModule = AppModule = __decorate([
             }),
             typeorm_1.TypeOrmModule.forRootAsync({
                 inject: [config_1.ConfigService],
-                useFactory: (config) => ({
-                    type: 'postgres',
-                    host: config.get('DB_HOST'),
-                    port: config.get('DB_PORT'),
-                    username: config.get('DB_USERNAME'),
-                    password: config.get('DB_PASSWORD'),
-                    database: config.get('DB_DATABASE'),
-                    entities: [__dirname + '/modules/**/*.entity{.ts,.js}'],
-                    synchronize: config.get('NODE_ENV') === 'development',
-                    logging: config.get('NODE_ENV') === 'development',
-                }),
+                useFactory: (config) => {
+                    const isProd = config.get('NODE_ENV') === 'production';
+                    return {
+                        type: 'postgres',
+                        host: config.get('DB_HOST'),
+                        port: config.get('DB_PORT'),
+                        username: config.get('DB_USERNAME'),
+                        password: config.get('DB_PASSWORD'),
+                        database: config.get('DB_NAME') || config.get('DB_DATABASE'),
+                        entities: [__dirname + '/modules/**/*.entity{.ts,.js}'],
+                        synchronize: config.get('NODE_ENV') === 'development',
+                        logging: config.get('NODE_ENV') === 'development',
+                        ssl: isProd ? { rejectUnauthorized: false } : false,
+                    };
+                },
             }),
             users_module_1.UsersModule,
             auth_module_1.AuthModule,

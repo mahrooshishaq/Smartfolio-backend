@@ -23,17 +23,21 @@ import { DocumentGenerationModule } from './modules/document-generation/document
     }), 
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get<string>('DB_HOST'),
-        port: config.get<number>('DB_PORT'),
-        username: config.get<string>('DB_USERNAME'),
-        password: config.get<string>('DB_PASSWORD'),
-        database: config.get<string>('DB_DATABASE'),
-        entities: [__dirname + '/modules/**/*.entity{.ts,.js}'],
-        synchronize: config.get<string>('NODE_ENV') === 'development',
-        logging: config.get<string>('NODE_ENV') === 'development',
-      }),
+      useFactory: (config: ConfigService) => {
+        const isProd = config.get<string>('NODE_ENV') === 'production';
+        return {
+          type: 'postgres',
+          host: config.get<string>('DB_HOST'),
+          port: config.get<number>('DB_PORT'),
+          username: config.get<string>('DB_USERNAME'),
+          password: config.get<string>('DB_PASSWORD'),
+          database: config.get<string>('DB_NAME') || config.get<string>('DB_DATABASE'),
+          entities: [__dirname + '/modules/**/*.entity{.ts,.js}'],
+          synchronize: config.get<string>('NODE_ENV') === 'development',
+          logging: config.get<string>('NODE_ENV') === 'development',
+          ssl: isProd ? { rejectUnauthorized: false } : false,
+        };
+      },
     }),
     UsersModule,
     AuthModule,

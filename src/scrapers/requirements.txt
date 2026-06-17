@@ -1,0 +1,6 @@
+pandas
+requests
+playwright
+groq
+python-dotenv
+openpyxl

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import * as fs from 'fs';
 import { PythonBridgeService } from '../../python-bridge/python-bridge.service';
 import { GroqService } from '../../ai/groq.service';
 import { UserContextService } from '../../onboarding/user-context.service';
@@ -40,7 +41,8 @@ export class ResumeAnalysisService {
 
     // 2. Extract text on-demand (cache after first extraction)
     if (!resume.isExtracted || !resume.extractedText) {
-      const extracted = await this.pythonBridge.extractResume(resume.filePath);
+      const fileBuffer = fs.readFileSync(resume.filePath);
+      const extracted = await this.pythonBridge.extractResume(fileBuffer, resume.originalFileName);
       await this.storageService.updateExtraction(
         resume,
         extracted.text,
