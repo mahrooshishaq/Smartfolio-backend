@@ -3,6 +3,7 @@
 The Smartfolio Backend API is the core engine of the Smartfolio platform, built with **NestJS**, **TypeORM**, and **PostgreSQL (Neon)**. It powers all user authentication, profile management, LLM interactions, and integrates directly with a dedicated Python service for advanced web scraping and resume parsing.
 
 ## 🚀 Live Deployment
+- **Frontend Web App**: [https://smartfolio-frontend-five.vercel.app](https://smartfolio-frontend-five.vercel.app)
 - **Backend API**: [https://mahrooshishaq-smartfolio-backend.hf.space](https://mahrooshishaq-smartfolio-backend.hf.space)
 - **Swagger Documentation**: [https://mahrooshishaq-smartfolio-backend.hf.space/api](https://mahrooshishaq-smartfolio-backend.hf.space/api)
 
@@ -29,21 +30,21 @@ We use **TypeORM** for object-relational mapping, connected to a serverless **Ne
 
 ### Dashboard
 The central hub for users to view their active job applications, course recommendations, and upcoming mock interviews.
-![Dashboard](../../smartfolio-frontend/screenshots%20for%20readme/Dashboard.png)
+![Dashboard](screenshots%20for%20readme/Dashboard.png)
 
 ### AI Resume Analysis
 Upload a PDF resume and receive instant, AI-generated feedback on formatting, keyword optimization, and overall impact.
-![Resume Analysis](../../smartfolio-frontend/screenshots%20for%20readme/ResumeAnalysis.png)
-![Resume Analyzed](../../smartfolio-frontend/screenshots%20for%20readme/ResumeAnalysed.png)
+![Resume Analysis](screenshots%20for%20readme/ResumeAnalysis.png)
+![Resume Analyzed](screenshots%20for%20readme/ResumeAnalysed.png)
 
 ### Mock Interviews
 Practice technical and behavioral interviews with real-time AI evaluation.
-![Mock Interviews](../../smartfolio-frontend/screenshots%20for%20readme/Mock%20Interviews.png)
+![Mock Interviews](screenshots%20for%20readme/Mock%20Interviews.png)
 
 ### Document Generation
 Generate tailored professional documents like Cover Letters and Cold Emails using the Llama3 LLM.
-![Document Generation](../../smartfolio-frontend/screenshots%20for%20readme/Document%20Generation.png)
-![Generated Document](../../smartfolio-frontend/screenshots%20for%20readme/AI%20Document%20Generated.png)
+![Document Generation](screenshots%20for%20readme/Document%20Generation.png)
+![Generated Document](screenshots%20for%20readme/AI%20Document%20Generated.png)
 
 ---
 
